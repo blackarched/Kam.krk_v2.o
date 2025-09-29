@@ -32,32 +32,36 @@ import secrets
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Try to import optional dependencies
-# Import secure network tools
-from secure_network_tools import secure_tools
+# Initialize Flask app first
+app = Flask(__name__)
+CORS(app)
 
 # Try to import optional dependencies safely
+# Import secure network tools
+try:
+    from secure_network_tools import secure_tools
+    SECURE_TOOLS_AVAILABLE = True
+except ImportError:
+    SECURE_TOOLS_AVAILABLE = False
+    print("Warning: Secure network tools not available. Using fallback methods.")
+
 try:
     from scapy.all import *
     SCAPY_AVAILABLE = True
 except ImportError:
     SCAPY_AVAILABLE = False
-    app.logger.info("Scapy not available. Using alternative methods.")
+    print("Warning: Scapy not available. Using alternative methods.")
 
 try:
     import netifaces as ni
     NETIFACES_AVAILABLE = True
 except ImportError:
     NETIFACES_AVAILABLE = False
-    app.logger.info("netifaces not available. Using alternative methods.")
+    print("Warning: netifaces not available. Using alternative methods.")
 
 # Removed bluetooth support due to security vulnerabilities
 BLUETOOTH_AVAILABLE = False
-app.logger.info("Bluetooth support disabled for security reasons.")
-
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)
+print("Info: Bluetooth support disabled for security reasons.")
 
 # Configuration - Generate secure secret key
 app.config['SECRET_KEY'] = secrets.token_hex(32)
