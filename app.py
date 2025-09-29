@@ -391,6 +391,134 @@ def scan_ports(target_ip, port_range="22,80,443"):
         print(f"Error in port scanning: {str(e)}")
         return []
 
+# Network interface utilities
+def _get_wireless_interface_info():
+    """Parse `iw dev` output to map interface -> type (e.g., managed/monitor)."""
+    iw_info = {}
+    try:
+        stdout, stderr = run_command(["iw", "dev"], timeout=10)
+        if not stdout:
+            return iw_info
+        current = None
+        for raw_line in stdout.splitlines():
+            line = raw_line.strip()
+            if line.startswith("Interface "):
+                parts = line.split()
+                if len(parts) >= 2:
+                    current = parts[1]
+                    iw_info[current] = {"type": None}
+            elif line.startswith("type ") and current:
+                parts = line.split()
+                if len(parts) >= 2:
+                    iw_info[current]["type"] = parts[1]
+    except Exception:
+        pass
+    return iw_info
+
+def _wireless_monitor_supported():
+    """Check whether the system supports monitor mode at all (via `iw list`)."""
+    try:
+        stdout, stderr = run_command(["iw", "list"], timeout=10)
+        if stdout and "* monitor" in stdout:
+            return True
+    except Exception:
+        return False
+    return False
+
+def list_network_interfaces():
+    """List network interfaces with status and basic attributes."""
+    interfaces = []
+    try:
+        stats = psutil.net_if_stats()
+        addrs = psutil.net_if_addrs()
+        iw_info = _get_wireless_interface_info()
+        monitor_supported_global = _wireless_monitor_supported()
+        for name, stat in stats.items():
+            iface_addrs = addrs.get(name, [])
+            ipv4 = None
+            ipv6 = None
+            mac = None
+            for addr in iface_addrs:
+                # psutil returns family enums; string compare fallback
+                fam = getattr(addr, 'family', None)
+                fam_str = str(fam)
+                if fam_str.endswith('AF_LINK') and not mac:
+                    mac = addr.address
+                elif fam_str.endswith('AF_INET') and not ipv4:
+                    ipv4 = addr.address
+                elif fam_str.endswith('AF_INET6') and not ipv6:
+                    ipv6 = addr.address
+            # Heuristic for type
+            lowered = name.lower()
+            if lowered.startswith('wl') or lowered.startswith('wlan'):
+                iface_type = 'wireless'
+            elif lowered == 'lo':
+                iface_type = 'loopback'
+            elif lowered.startswith('eth') or lowered.startswith('en'):
+                iface_type = 'ethernet'
+            else:
+                iface_type = 'other'
+            iw = iw_info.get(name, {})
+            monitor_enabled = iw.get('type') == 'monitor'
+            interfaces.append({
+                "name": name,
+                "is_up": bool(getattr(stat, 'isup', False)),
+                "mtu": getattr(stat, 'mtu', None),
+                "speed_mbps": getattr(stat, 'speed', None),
+                "duplex": getattr(stat, 'duplex', None),
+                "ipv4": ipv4 or "",
+                "ipv6": ipv6 or "",
+                "mac": mac or "",
+                "type": iface_type,
+                "monitor_supported": monitor_supported_global and iface_type == 'wireless',
+                "monitor_enabled": monitor_enabled
+            })
+    except Exception as e:
+        print(f"Error listing interfaces: {str(e)}")
+    return interfaces
+
+# API: Network interfaces
+@app.route('/api/network/interfaces', methods=['GET'])
+def api_network_interfaces():
+    try:
+        return jsonify({"interfaces": list_network_interfaces()})
+    except Exception:
+        return jsonify({"interfaces": []}), 200
+
+@app.route('/api/network/monitor', methods=['POST'])
+def api_network_monitor():
+    data = request.get_json() or {}
+    iface = sanitize_input(str(data.get('interface', '')))
+    enable = bool(data.get('enable', True))
+    if not iface:
+        return jsonify({"error": "interface required"}), 400
+    # Validate interface exists
+    known = {i['name'] for i in list_network_interfaces()}
+    if iface not in known:
+        return jsonify({"error": "unknown interface"}), 404
+    # Attempt monitor toggle
+    try:
+        # Bring down
+        run_command(["ip", "link", "set", iface, "down"], timeout=10)
+        if enable:
+            # Enable monitor
+            stdout, stderr = run_command(["iw", "dev", iface, "set", "type", "monitor"], timeout=10)
+        else:
+            # Back to managed
+            stdout, stderr = run_command(["iw", "dev", iface, "set", "type", "managed"], timeout=10)
+        # Bring up
+        run_command(["ip", "link", "set", iface, "up"], timeout=10)
+        # Report new state
+        iw_info = _get_wireless_interface_info()
+        monitor_enabled = iw_info.get(iface, {}).get('type') == 'monitor'
+        return jsonify({
+            "status": "success",
+            "interface": iface,
+            "monitor_enabled": monitor_enabled
+        })
+    except Exception as e:
+        return jsonify({"error": "failed to toggle monitor mode. try running as root."}), 500
+
 # API Routes
 @app.route('/')
 def index():

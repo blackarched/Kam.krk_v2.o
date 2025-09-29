@@ -785,11 +785,17 @@
                 
                 <div class="mb-4">
                     <label class="block text-sm mb-2" style="color: var(--primary-color);">NETWORK INTERFACE</label>
-                    <select class="holographic-input">
-                        <option value="eth0">eth0</option>
-                        <option value="wlan0">wlan0</option>
-                        <option value="tun0">tun0</option>
-                    </select>
+                    <select id="interfaceSelect" class="holographic-input"></select>
+                    <div id="interfaceMeta" class="text-xs mt-2">
+                        <span id="ifaceState" class="mr-3">State: unknown</span>
+                        <span id="ifaceType" class="mr-3">Type: -</span>
+                        <span id="ifaceIp">IPv4: -</span>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                        <input id="monitorToggle" type="checkbox">
+                        <label for="monitorToggle" class="text-xs">Monitor mode</label>
+                        <span id="monitorSupport" class="text-xs text-gray-400"></span>
+                    </div>
                 </div>
                 
                 <div class="mb-4">
@@ -1244,6 +1250,7 @@
         // Global chart instances
         let scanResultsChart, portStatusChart, vulnerabilityChart, attackProgressChart, systemMetricsChart;
         let financialChart, candlestickChart, performanceChart;
+        let interfacesCache = [];
         
         // API Helper Functions
         async function apiCall(endpoint, method = 'GET', data = null) {
@@ -1317,6 +1324,74 @@
                 
             } catch (error) {
                 console.error('Failed to update system metrics:', error);
+            }
+        }
+
+        // Populate network interfaces dropdown and wire monitor toggle
+        async function loadInterfaces() {
+            try {
+                const data = await apiCall('/network/interfaces');
+                interfacesCache = data.interfaces || [];
+                const select = document.getElementById('interfaceSelect');
+                if (!select) return;
+                select.innerHTML = '';
+                interfacesCache.forEach((iface) => {
+                    const option = document.createElement('option');
+                    option.value = iface.name;
+                    const state = iface.is_up ? 'up' : 'down';
+                    option.textContent = `${iface.name} (${state})`;
+                    select.appendChild(option);
+                });
+                // Select first and update meta
+                if (interfacesCache.length) {
+                    select.value = interfacesCache[0].name;
+                    updateInterfaceMeta();
+                }
+                // Change handler
+                select.addEventListener('change', updateInterfaceMeta);
+                // Monitor toggle
+                const toggle = document.getElementById('monitorToggle');
+                if (toggle) {
+                    toggle.addEventListener('change', async function() {
+                        const iface = select.value;
+                        const enable = this.checked;
+                        try {
+                            const res = await apiCall('/network/monitor', 'POST', { interface: iface, enable });
+                            addConsoleMessage(`Monitor mode ${res.monitor_enabled ? 'enabled' : 'disabled'} on ${iface}`, 'text-blue-400');
+                            // Refresh interfaces
+                            await loadInterfaces();
+                            select.value = iface;
+                            updateInterfaceMeta();
+                        } catch (e) {
+                            addConsoleMessage(`Monitor toggle failed: ${e.message}`, 'text-red-400');
+                            this.checked = !enable;
+                        }
+                    });
+                }
+            } catch (e) {
+                addConsoleMessage('Failed to load interfaces', 'text-red-400');
+            }
+        }
+
+        function updateInterfaceMeta() {
+            const select = document.getElementById('interfaceSelect');
+            const name = select ? select.value : '';
+            const iface = interfacesCache.find(i => i.name === name);
+            const stateEl = document.getElementById('ifaceState');
+            const typeEl = document.getElementById('ifaceType');
+            const ipEl = document.getElementById('ifaceIp');
+            const supportEl = document.getElementById('monitorSupport');
+            const toggle = document.getElementById('monitorToggle');
+            if (!iface) return;
+            stateEl.textContent = `State: ${iface.is_up ? 'up' : 'down'}`;
+            typeEl.textContent = `Type: ${iface.type}`;
+            ipEl.textContent = `IPv4: ${iface.ipv4 || '-'}`;
+            if (toggle) {
+                toggle.disabled = !(iface.monitor_supported && iface.type === 'wireless');
+                toggle.checked = !!iface.monitor_enabled;
+            }
+            if (supportEl) {
+                supportEl.textContent = !iface.monitor_supported ? '(monitor not supported)' : '';
             }
         }
         
@@ -1867,6 +1942,7 @@
             initParticles();
             initCharts();
             initSatelliteMap();
+            loadInterfaces();
             setupGenericButtonHandlers();
             
             // Start periodic updates
@@ -1907,7 +1983,7 @@
             
             // Button Event Handlers
             setupButtonHandlers();
-        }
+        });
         
         // Setup button event handlers
         function setupButtonHandlers() {
