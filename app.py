@@ -26,36 +26,51 @@ import logging
 from logging.handlers import RotatingFileHandler
 import signal
 import sys
+import shlex
+import hashlib
+import secrets
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Try to import optional dependencies
+# Import secure network tools
+from secure_network_tools import secure_tools
+
+# Try to import optional dependencies safely
 try:
     from scapy.all import *
     SCAPY_AVAILABLE = True
 except ImportError:
     SCAPY_AVAILABLE = False
-    print("Warning: Scapy not available. Some network functions will be limited.")
+    app.logger.info("Scapy not available. Using alternative methods.")
 
 try:
     import netifaces as ni
     NETIFACES_AVAILABLE = True
 except ImportError:
     NETIFACES_AVAILABLE = False
-    print("Warning: netifaces not available. Using alternative methods.")
+    app.logger.info("netifaces not available. Using alternative methods.")
 
-try:
-    import bluetooth
-    BLUETOOTH_AVAILABLE = True
-except ImportError:
-    BLUETOOTH_AVAILABLE = False
-    print("Warning: pybluez not available. Bluetooth scanning disabled.")
+# Removed bluetooth support due to security vulnerabilities
+BLUETOOTH_AVAILABLE = False
+app.logger.info("Bluetooth support disabled for security reasons.")
 
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
 
-# Configuration
-app.config['SECRET_KEY'] = 'cyber-matrix-v8-secret-key-2024'
+# Configuration - Generate secure secret key
+app.config['SECRET_KEY'] = secrets.token_hex(32)
 app.config['DEBUG'] = False
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Security configuration
+API_KEY_HASH = generate_password_hash(os.environ.get('CYBER_MATRIX_API_KEY', secrets.token_urlsafe(32)))
+RATE_LIMIT_REQUESTS = 100  # requests per minute
+RATE_LIMIT_WINDOW = 60  # seconds
+
+# Rate limiting storage
+rate_limit_storage = {}
 
 # Global variables for real-time data
 system_metrics = {
@@ -131,22 +146,123 @@ def get_db_connection():
     finally:
         conn.close()
 
-def run_command(command, shell=False, timeout=30):
-    """Execute system commands safely with timeout"""
+# Security utilities
+def validate_ip_address(ip):
+    """Validate IP address format"""
     try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
+
+def validate_port_range(port_range):
+    """Validate port range format"""
+    try:
+        if ',' in port_range:
+            # Handle comma-separated ports like "22,80,443"
+            ports = port_range.split(',')
+            for port_str in ports:
+                port = int(port_str.strip())
+                if not (1 <= port <= 65535):
+                    return False
+            return True
+        elif '-' in port_range:
+            start, end = port_range.split('-', 1)
+            start, end = int(start), int(end)
+            return 1 <= start <= end <= 65535
+        else:
+            port = int(port_range)
+            return 1 <= port <= 65535
+    except (ValueError, AttributeError):
+        return False
+
+def validate_cidr_range(cidr):
+    """Validate CIDR notation"""
+    try:
+        ipaddress.ip_network(cidr, strict=False)
+        return True
+    except ValueError:
+        return False
+
+def sanitize_input(input_str, max_length=100):
+    """Sanitize user input"""
+    if not isinstance(input_str, str):
+        return ""
+    # Remove dangerous characters
+    sanitized = re.sub(r'[;&|`$(){}\[\]<>"\']', '', input_str)
+    return sanitized[:max_length].strip()
+
+def require_api_key(f):
+    """Decorator to require API key authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key') or request.args.get('api_key')
+        if not api_key or not check_password_hash(API_KEY_HASH, api_key):
+            return jsonify({'error': 'Invalid or missing API key'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def rate_limit(max_requests=RATE_LIMIT_REQUESTS, window=RATE_LIMIT_WINDOW):
+    """Simple rate limiting decorator"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+            current_time = time.time()
+            
+            # Clean old entries
+            for ip in list(rate_limit_storage.keys()):
+                rate_limit_storage[ip] = [req_time for req_time in rate_limit_storage[ip] 
+                                        if current_time - req_time < window]
+                if not rate_limit_storage[ip]:
+                    del rate_limit_storage[ip]
+            
+            # Check rate limit
+            if client_ip not in rate_limit_storage:
+                rate_limit_storage[client_ip] = []
+            
+            if len(rate_limit_storage[client_ip]) >= max_requests:
+                return jsonify({'error': 'Rate limit exceeded'}), 429
+            
+            rate_limit_storage[client_ip].append(current_time)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def run_command(command, timeout=30, allowed_commands=None):
+    """Execute system commands safely with strict validation"""
+    try:
+        # Validate command is in allowed list
+        if allowed_commands:
+            cmd_name = command[0] if isinstance(command, list) else command.split()[0]
+            if cmd_name not in allowed_commands:
+                return None, f"Command not allowed: {cmd_name}"
+        
+        # Always use list format and never shell=True
+        if isinstance(command, str):
+            # Only allow specific safe commands
+            safe_commands = ['ping', 'nmap', 'arp', 'iwlist', 'ps', 'netstat']
+            cmd_parts = shlex.split(command)
+            if cmd_parts[0] not in safe_commands:
+                return None, f"Command not allowed: {cmd_parts[0]}"
+            command = cmd_parts
+        
         result = subprocess.run(
-            command, 
-            shell=shell, 
-            capture_output=True, 
-            text=True, 
-            check=True, 
+            command,
+            shell=False,  # Never use shell=True
+            capture_output=True,
+            text=True,
+            check=True,
             timeout=timeout
         )
         return result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
-        return None, str(e)
+        return None, "Command execution failed"
     except subprocess.TimeoutExpired:
         return None, "Command timed out"
+    except Exception as e:
+        app.logger.error(f"Command execution error: {str(e)}")
+        return None, "Command execution error"
 
 def get_system_metrics():
     """Get real-time system metrics"""
@@ -177,7 +293,7 @@ def get_system_metrics():
             conn.commit()
             
     except Exception as e:
-        print(f"Error getting system metrics: {e}")
+        app.logger.error(f"Error getting system metrics: {str(e)}")
 
 def update_metrics_thread():
     """Background thread to update system metrics"""
@@ -187,70 +303,12 @@ def update_metrics_thread():
 
 # Network Discovery Functions
 def discover_network_devices(ip_range="192.168.1.0/24"):
-    """Discover devices on the network using multiple methods"""
-    devices = []
-    
+    """Discover devices on the network using secure methods"""
     try:
-        # Method 1: ARP table
-        stdout, stderr = run_command(["arp", "-a"])
-        if stdout:
-            for line in stdout.splitlines():
-                match = re.search(r"\(([\d.]+)\) at ([a-fA-F0-9:]+)", line)
-                if match:
-                    ip, mac = match.groups()
-                    # Try to get hostname
-                    try:
-                        hostname = socket.gethostbyaddr(ip)[0]
-                    except:
-                        hostname = "Unknown"
-                    
-                    devices.append({
-                        "ip": ip,
-                        "mac": mac,
-                        "hostname": hostname,
-                        "method": "ARP",
-                        "status": "active"
-                    })
+        # Use secure network tools
+        devices = secure_tools.discover_network_devices(ip_range)
         
-        # Method 2: Ping sweep (if nmap not available)
-        if not devices:
-            network = ipaddress.IPv4Network(ip_range, strict=False)
-            for ip in list(network.hosts())[:20]:  # Limit to first 20 IPs
-                stdout, stderr = run_command(["ping", "-c", "1", "-W", "1", str(ip)])
-                if stdout and "1 received" in stdout:
-                    devices.append({
-                        "ip": str(ip),
-                        "mac": "Unknown",
-                        "hostname": "Unknown",
-                        "method": "Ping",
-                        "status": "active"
-                    })
-        
-        # Method 3: Try nmap if available
-        stdout, stderr = run_command(["nmap", "-sn", ip_range])
-        if stdout and not stderr:
-            nmap_devices = []
-            current_device = {}
-            for line in stdout.splitlines():
-                if "Nmap scan report for" in line:
-                    if current_device:
-                        nmap_devices.append(current_device)
-                    current_device = {
-                        "hostname": line.split("for ")[1].strip(),
-                        "method": "Nmap",
-                        "status": "active"
-                    }
-                elif "MAC Address:" in line:
-                    current_device["mac"] = line.split("MAC Address: ")[1].split()[0]
-            
-            if current_device:
-                nmap_devices.append(current_device)
-            
-            # Merge with existing devices or use nmap results
-            if nmap_devices:
-                devices.extend(nmap_devices)
-        
-        # Store in database
+        # Store in database with parameterized queries
         with get_db_connection() as conn:
             for device in devices:
                 conn.execute('''
@@ -270,83 +328,64 @@ def discover_network_devices(ip_range="192.168.1.0/24"):
         return devices
         
     except Exception as e:
-        print(f"Error in network discovery: {e}")
+        app.logger.error(f"Error in network discovery: {str(e)}")
         return []
 
-def scan_ports(target_ip, port_range="1-1000"):
-    """Scan ports on target IP"""
+def scan_ports(target_ip, port_range="22,80,443"):
+    """Scan ports using secure methods"""
     try:
-        # Try nmap first
-        stdout, stderr = run_command(["nmap", "-p", port_range, target_ip])
-        if stdout and not stderr:
-            open_ports = []
-            for line in stdout.splitlines():
-                if "/tcp" in line and "open" in line:
-                    port = line.split("/")[0]
-                    service = line.split()[-1] if len(line.split()) > 2 else "unknown"
-                    open_ports.append({"port": int(port), "service": service, "state": "open"})
-            
-            # Store results
-            with get_db_connection() as conn:
-                conn.execute(
-                    "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
-                    ("port_scan", target_ip, json.dumps(open_ports), "completed")
-                )
-                conn.commit()
-            
-            return open_ports
+        # Use secure port scanning with limited scope
+        open_ports = secure_tools.scan_ports_secure(target_ip, port_range)
         
-        # Fallback: Simple socket connection test for common ports
-        common_ports = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 3389, 5432, 3306]
-        open_ports = []
-        
-        for port in common_ports:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(1)
-                result = sock.connect_ex((target_ip, port))
-                if result == 0:
-                    service = {21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp", 
-                              53: "dns", 80: "http", 443: "https", 3389: "rdp"}.get(port, "unknown")
-                    open_ports.append({"port": port, "service": service, "state": "open"})
-                sock.close()
-            except:
-                continue
+        # Store results with parameterized query
+        with get_db_connection() as conn:
+            conn.execute(
+                "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
+                ("port_scan", target_ip, json.dumps(open_ports), "completed")
+            )
+            conn.commit()
         
         return open_ports
         
     except Exception as e:
-        print(f"Error in port scanning: {e}")
+        app.logger.error(f"Error in port scanning: {str(e)}")
         return []
 
 def vulnerability_scan(target_ip):
-    """Perform basic vulnerability assessment"""
+    """Perform basic vulnerability assessment with validation"""
     vulnerabilities = []
     
     try:
-        # Check for common vulnerabilities
+        # Validate IP address
+        if not validate_ip_address(target_ip):
+            app.logger.warning(f"Invalid IP address for vulnerability scan: {target_ip}")
+            return []
+        
+        # Check for common vulnerabilities on limited port range
         ports = scan_ports(target_ip, "1-1000")
         
         for port_info in ports:
-            port = port_info['port']
-            service = port_info['service']
+            port = port_info.get('port')
+            service = port_info.get('service', 'unknown')
             
-            # Common vulnerability checks
+            if not isinstance(port, int) or not (1 <= port <= 65535):
+                continue
+            
+            # Common vulnerability checks with sanitized data
             if port == 21 and service == "ftp":
                 vulnerabilities.append({
                     "severity": "medium",
-                    "type": "FTP Anonymous Access",
-                    "description": "FTP service may allow anonymous access",
+                    "type": "FTP Service Detected",
+                    "description": "FTP service detected - may have security issues",
                     "port": port,
-                    "recommendation": "Disable anonymous FTP access"
+                    "recommendation": "Use SFTP instead of FTP"
                 })
             
             elif port == 22 and service == "ssh":
-                # Try to detect SSH version
                 vulnerabilities.append({
                     "severity": "low",
-                    "type": "SSH Service",
-                    "description": "SSH service detected - ensure strong authentication",
+                    "type": "SSH Service Detected",
+                    "description": "SSH service detected - ensure strong configuration",
                     "port": port,
                     "recommendation": "Use key-based authentication and disable root login"
                 })
@@ -360,16 +399,16 @@ def vulnerability_scan(target_ip):
                     "recommendation": "Implement HTTPS encryption"
                 })
             
-            elif port == 3389 and service == "rdp":
+            elif port == 23 and service == "telnet":
                 vulnerabilities.append({
                     "severity": "high",
-                    "type": "RDP Service Exposed",
-                    "description": "Remote Desktop Protocol exposed to network",
+                    "type": "Telnet Service Detected",
+                    "description": "Insecure Telnet service detected",
                     "port": port,
-                    "recommendation": "Restrict RDP access and use VPN"
+                    "recommendation": "Replace Telnet with SSH"
                 })
         
-        # Store results
+        # Store results with parameterized query
         with get_db_connection() as conn:
             conn.execute(
                 "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
@@ -378,48 +417,20 @@ def vulnerability_scan(target_ip):
             conn.commit()
         
         system_metrics['vulnerabilities'] = len(vulnerabilities)
+        app.logger.info(f"Vulnerability scan completed for {target_ip}: {len(vulnerabilities)} issues found")
         return vulnerabilities
         
     except Exception as e:
-        print(f"Error in vulnerability scanning: {e}")
+        app.logger.error(f"Error in vulnerability scanning: {str(e)}")
         return []
 
 def get_wifi_networks():
-    """Discover WiFi networks"""
-    networks = []
-    
+    """Discover WiFi networks using secure methods"""
     try:
-        # Try iwlist scan
-        stdout, stderr = run_command(["iwlist", "wlan0", "scan"])
-        if stdout:
-            current_network = {}
-            for line in stdout.splitlines():
-                line = line.strip()
-                if "Cell" in line:
-                    if current_network:
-                        networks.append(current_network)
-                    current_network = {}
-                elif "Address:" in line:
-                    current_network["bssid"] = line.split("Address: ")[1]
-                elif "ESSID:" in line:
-                    essid = line.split("ESSID:")[1].strip().strip('"')
-                    if essid:
-                        current_network["essid"] = essid
-                elif "Channel:" in line:
-                    current_network["channel"] = line.split("Channel:")[1]
-                elif "Quality=" in line:
-                    quality = line.split("Quality=")[1].split()[0]
-                    current_network["quality"] = quality
-                elif "Encryption key:" in line:
-                    current_network["encrypted"] = "on" in line
-            
-            if current_network:
-                networks.append(current_network)
-    
+        return secure_tools.get_wifi_networks_secure()
     except Exception as e:
-        print(f"Error scanning WiFi: {e}")
-    
-    return networks
+        app.logger.error(f"Error scanning WiFi: {str(e)}")
+        return []
 
 # API Routes
 
@@ -434,16 +445,24 @@ def index():
         return "Dashboard file not found", 404
 
 @app.route('/api/system/metrics')
+@rate_limit(max_requests=60, window=60)  # Allow frequent polling
+@require_api_key
 def api_system_metrics():
     """Get current system metrics"""
-    return jsonify(system_metrics)
+    try:
+        return jsonify(system_metrics)
+    except Exception as e:
+        app.logger.error(f"System metrics error: {str(e)}")
+        return jsonify({"error": "Failed to retrieve system metrics"}), 500
 
 @app.route('/api/system/metrics/history')
+@rate_limit(max_requests=30, window=60)
+@require_api_key
 def api_system_metrics_history():
     """Get historical system metrics for charts"""
     try:
         with get_db_connection() as conn:
-            # Get last 24 hours of data
+            # Get last 24 hours of data with limit
             cursor = conn.execute('''
                 SELECT metric_name, metric_value, timestamp 
                 FROM system_metrics 
@@ -458,21 +477,32 @@ def api_system_metrics_history():
                 if metric_name not in metrics_data:
                     metrics_data[metric_name] = []
                 metrics_data[metric_name].append({
-                    'value': row['metric_value'],
+                    'value': float(row['metric_value']),  # Ensure numeric
                     'timestamp': row['timestamp']
                 })
             
             return jsonify(metrics_data)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Metrics history error: {str(e)}")
+        return jsonify({"error": "Failed to retrieve metrics history"}), 500
 
 @app.route('/api/network/scan', methods=['POST'])
+@rate_limit(max_requests=10, window=60)  # Limit network scans
+@require_api_key
 def api_network_scan():
-    """Initiate network scan"""
-    data = request.get_json() or {}
-    ip_range = data.get('ip_range', '192.168.1.0/24')
-    
+    """Initiate network scan with security validation"""
     try:
+        data = request.get_json() or {}
+        ip_range = sanitize_input(data.get('ip_range', '192.168.1.0/24'), 20)
+        
+        # Validate IP range
+        if not validate_cidr_range(ip_range):
+            return jsonify({"error": "Invalid IP range format"}), 400
+        
+        # Check if scan is already running
+        if system_metrics['active_scans'] >= 3:  # Limit concurrent scans
+            return jsonify({"error": "Too many active scans"}), 429
+        
         system_metrics['active_scans'] += 1
         devices = discover_network_devices(ip_range)
         system_metrics['active_scans'] -= 1
@@ -484,9 +514,12 @@ def api_network_scan():
         })
     except Exception as e:
         system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Network scan error: {str(e)}")
+        return jsonify({"error": "Network scan failed"}), 500
 
 @app.route('/api/network/devices')
+@rate_limit(max_requests=30, window=60)
+@require_api_key
 def api_network_devices():
     """Get discovered network devices"""
     try:
@@ -495,6 +528,7 @@ def api_network_devices():
                 SELECT * FROM network_devices 
                 WHERE last_seen > datetime('now', '-1 hour')
                 ORDER BY last_seen DESC
+                LIMIT 50
             ''')
             
             devices = []
@@ -505,25 +539,38 @@ def api_network_devices():
                     'hostname': row['hostname'],
                     'type': row['device_type'],
                     'status': row['status'],
-                    'vulnerability_score': row['vulnerability_score'],
+                    'vulnerability_score': int(row['vulnerability_score']) if row['vulnerability_score'] else 0,
                     'last_seen': row['last_seen']
                 })
             
             return jsonify(devices)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Network devices error: {str(e)}")
+        return jsonify({"error": "Failed to retrieve network devices"}), 500
 
 @app.route('/api/port/scan', methods=['POST'])
+@rate_limit(max_requests=5, window=60)  # Strict limit for port scans
+@require_api_key
 def api_port_scan():
-    """Initiate port scan"""
-    data = request.get_json() or {}
-    target_ip = data.get('target_ip')
-    port_range = data.get('port_range', '1-1000')
-    
-    if not target_ip:
-        return jsonify({"error": "target_ip required"}), 400
-    
+    """Initiate port scan with security validation"""
     try:
+        data = request.get_json() or {}
+        target_ip = sanitize_input(data.get('target_ip', ''), 15)
+        port_range = sanitize_input(data.get('port_range', '1-1000'), 20)
+        
+        if not target_ip:
+            return jsonify({"error": "target_ip required"}), 400
+        
+        if not validate_ip_address(target_ip):
+            return jsonify({"error": "Invalid IP address format"}), 400
+        
+        if not validate_port_range(port_range):
+            return jsonify({"error": "Invalid port range format"}), 400
+        
+        # Check if scan is already running
+        if system_metrics['active_scans'] >= 2:
+            return jsonify({"error": "Too many active scans"}), 429
+        
         system_metrics['active_scans'] += 1
         ports = scan_ports(target_ip, port_range)
         system_metrics['active_scans'] -= 1
@@ -536,19 +583,32 @@ def api_port_scan():
         })
     except Exception as e:
         system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Port scan error: {str(e)}")
+        return jsonify({"error": "Port scan failed"}), 500
 
 @app.route('/api/vulnerability/scan', methods=['POST'])
+@rate_limit(max_requests=3, window=300)  # Very strict limit for vuln scans
+@require_api_key
 def api_vulnerability_scan():
-    """Initiate vulnerability scan"""
-    data = request.get_json() or {}
-    target_ip = data.get('target_ip')
-    intensity = data.get('intensity', 'medium')
-    
-    if not target_ip:
-        return jsonify({"error": "target_ip required"}), 400
-    
+    """Initiate vulnerability scan with security validation"""
     try:
+        data = request.get_json() or {}
+        target_ip = sanitize_input(data.get('target_ip', ''), 15)
+        intensity = sanitize_input(data.get('intensity', 'medium'), 10)
+        
+        if not target_ip:
+            return jsonify({"error": "target_ip required"}), 400
+        
+        if not validate_ip_address(target_ip):
+            return jsonify({"error": "Invalid IP address format"}), 400
+        
+        if intensity not in ['low', 'medium', 'high']:
+            intensity = 'medium'
+        
+        # Check if scan is already running
+        if system_metrics['active_scans'] >= 1:  # Only one vuln scan at a time
+            return jsonify({"error": "Vulnerability scan already in progress"}), 429
+        
         system_metrics['active_scans'] += 1
         vulnerabilities = vulnerability_scan(target_ip)
         system_metrics['active_scans'] -= 1
@@ -559,16 +619,19 @@ def api_vulnerability_scan():
             "vulnerabilities": vulnerabilities,
             "total_found": len(vulnerabilities),
             "severity_breakdown": {
-                "high": len([v for v in vulnerabilities if v['severity'] == 'high']),
-                "medium": len([v for v in vulnerabilities if v['severity'] == 'medium']),
-                "low": len([v for v in vulnerabilities if v['severity'] == 'low'])
+                "high": len([v for v in vulnerabilities if v.get('severity') == 'high']),
+                "medium": len([v for v in vulnerabilities if v.get('severity') == 'medium']),
+                "low": len([v for v in vulnerabilities if v.get('severity') == 'low'])
             }
         })
     except Exception as e:
         system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Vulnerability scan error: {str(e)}")
+        return jsonify({"error": "Vulnerability scan failed"}), 500
 
 @app.route('/api/wifi/networks')
+@rate_limit(max_requests=5, window=60)
+@require_api_key
 def api_wifi_networks():
     """Get WiFi networks"""
     try:
@@ -579,89 +642,136 @@ def api_wifi_networks():
             "total_found": len(networks)
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"WiFi networks error: {str(e)}")
+        return jsonify({"error": "Failed to retrieve WiFi networks"}), 500
 
 @app.route('/api/attack/hydra', methods=['POST'])
+@rate_limit(max_requests=1, window=3600)  # Very strict limit - 1 per hour
+@require_api_key
 def api_hydra_attack():
-    """Simulate Hydra brute force attack"""
-    data = request.get_json() or {}
-    target_ip = data.get('target_ip')
-    protocol = data.get('protocol', 'ssh')
-    
-    if not target_ip:
-        return jsonify({"error": "target_ip required"}), 400
-    
+    """Simulate Hydra brute force attack (SIMULATION ONLY)"""
     try:
-        # Log the attack attempt
+        data = request.get_json() or {}
+        target_ip = sanitize_input(data.get('target_ip', ''), 15)
+        protocol = sanitize_input(data.get('protocol', 'ssh'), 10)
+        
+        if not target_ip:
+            return jsonify({"error": "target_ip required"}), 400
+        
+        if not validate_ip_address(target_ip):
+            return jsonify({"error": "Invalid IP address format"}), 400
+        
+        # Only allow safe protocols
+        allowed_protocols = ['ssh', 'ftp', 'telnet', 'http']
+        if protocol not in allowed_protocols:
+            protocol = 'ssh'
+        
+        # Log the simulated attack attempt
         with get_db_connection() as conn:
             conn.execute(
                 "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
-                ("hydra_bruteforce", target_ip, "initiated", f"Protocol: {protocol}")
+                ("hydra_simulation", target_ip, "simulated", f"Protocol: {protocol}")
             )
             conn.commit()
         
-        # Simulate attack progress
+        app.logger.warning(f"Simulated Hydra attack logged for {target_ip} using {protocol}")
+        
+        # Return simulation response
         return jsonify({
-            "status": "initiated",
+            "status": "simulated",
             "target": target_ip,
             "protocol": protocol,
-            "message": f"Hydra brute force attack initiated against {target_ip} using {protocol} protocol"
+            "message": f"Hydra attack simulation logged for {target_ip} using {protocol} protocol",
+            "note": "This is a simulation for educational purposes only"
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Attack simulation error: {str(e)}")
+        return jsonify({"error": "Attack simulation failed"}), 500
 
 @app.route('/api/attack/metasploit', methods=['POST'])
+@rate_limit(max_requests=1, window=3600)  # Very strict limit - 1 per hour
+@require_api_key
 def api_metasploit_attack():
-    """Simulate Metasploit exploit"""
-    data = request.get_json() or {}
-    target_ip = data.get('target_ip')
-    exploit = data.get('exploit', 'generic')
-    
-    if not target_ip:
-        return jsonify({"error": "target_ip required"}), 400
-    
+    """Simulate Metasploit exploit (SIMULATION ONLY)"""
     try:
-        # Log the attack attempt
+        data = request.get_json() or {}
+        target_ip = sanitize_input(data.get('target_ip', ''), 15)
+        exploit = sanitize_input(data.get('exploit', 'generic'), 20)
+        
+        if not target_ip:
+            return jsonify({"error": "target_ip required"}), 400
+        
+        if not validate_ip_address(target_ip):
+            return jsonify({"error": "Invalid IP address format"}), 400
+        
+        # Only allow safe exploit names for simulation
+        safe_exploits = ['generic', 'test', 'simulation', 'educational']
+        if exploit not in safe_exploits:
+            exploit = 'generic'
+        
+        # Log the simulated attack attempt
         with get_db_connection() as conn:
             conn.execute(
                 "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
-                ("metasploit_exploit", target_ip, "initiated", f"Exploit: {exploit}")
+                ("metasploit_simulation", target_ip, "simulated", f"Exploit: {exploit}")
             )
             conn.commit()
         
+        app.logger.warning(f"Simulated Metasploit exploit logged for {target_ip} using {exploit}")
+        
         return jsonify({
-            "status": "initiated",
+            "status": "simulated",
             "target": target_ip,
             "exploit": exploit,
-            "message": f"Metasploit exploit {exploit} initiated against {target_ip}"
+            "message": f"Metasploit exploit simulation logged for {target_ip}",
+            "note": "This is a simulation for educational purposes only"
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Exploit simulation error: {str(e)}")
+        return jsonify({"error": "Exploit simulation failed"}), 500
 
 @app.route('/api/console/execute', methods=['POST'])
+@rate_limit(max_requests=20, window=60)
+@require_api_key
 def api_console_execute():
-    """Execute console commands (simulated for security)"""
-    data = request.get_json() or {}
-    command = data.get('command', '')
-    
-    # Simulate command execution with safe responses
-    responses = {
-        'help': 'Available commands: scan, attack, status, info',
-        'scan network': 'Network scan initiated...',
-        'status': 'All systems operational',
-        'info': 'CYBER-MATRIX v8.0 - Advanced Penetration Suite',
-        'whoami': 'cyber-matrix-user',
-        'pwd': '/opt/cyber-matrix',
-        'ls': 'scan_results.db  attack_logs.db  config.json',
-    }
-    
-    response = responses.get(command.lower(), f'Command executed: {command}')
-    
-    return jsonify({
-        "status": "success",
-        "command": command,
-        "output": response
-    })
+    """Execute console commands (SIMULATION ONLY)"""
+    try:
+        data = request.get_json() or {}
+        command = sanitize_input(data.get('command', ''), 50)
+        
+        if not command:
+            return jsonify({"error": "Command required"}), 400
+        
+        # Whitelist of safe simulated commands
+        safe_responses = {
+            'help': 'Available commands: scan, status, info, whoami, pwd, ls, date, uptime',
+            'scan network': 'Network scan simulation initiated...',
+            'status': 'All systems operational - SIMULATION MODE',
+            'info': 'CYBER-MATRIX v8.0 - Educational Penetration Testing Suite',
+            'whoami': 'cyber-matrix-user',
+            'pwd': '/opt/cyber-matrix',
+            'ls': 'scan_results.db  attack_logs.db  config.json',
+            'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'uptime': 'System uptime: Simulation mode',
+            'ps': 'PID  COMMAND\n1234 cyber-matrix\n5678 simulation-service',
+        }
+        
+        # Log command execution
+        app.logger.info(f"Console command executed: {command}")
+        
+        # Get response or default
+        response = safe_responses.get(command.lower(), 
+                   f'Command simulation: {command} (educational mode only)')
+        
+        return jsonify({
+            "status": "success",
+            "command": command,
+            "output": response,
+            "note": "This is a simulation for educational purposes"
+        })
+    except Exception as e:
+        app.logger.error(f"Console simulation error: {str(e)}")
+        return jsonify({"error": "Console simulation failed"}), 500
 
 @app.route('/api/charts/scan_results')
 def api_charts_scan_results():
