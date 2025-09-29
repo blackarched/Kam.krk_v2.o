@@ -64,6 +64,31 @@ chmod +x start.sh
 sudo ./start.sh
 ```
 
+### Elite CLI (Advanced Users)
+
+The Elite CLI provides a high-tech terminal interface with rich visuals and fast access to core features.
+
+```bash
+# Ensure Python is available; install rich if needed (user scope)
+python3 -m pip install --user --disable-pip-version-check --break-system-packages rich rich-argparse
+
+# Run the CLI directly from repo root
+./cmx --help
+
+# Examples
+./cmx info
+./cmx discover 192.168.1.0/24
+./cmx ports 192.168.1.10 --ports 22,80,443
+./cmx simulate 192.168.1.10 --type ssh_test
+./cmx history --limit 10
+./cmx show 1
+./cmx tui  # Interactive console
+```
+
+Notes:
+- The CLI records results to the existing `cyber_matrix.db` (`scan_results` table). If the file is missing, the CLI will initialize the minimal schema it needs.
+- For full features, install dependencies via `pip install -r requirements.txt` in a virtualenv.
+
 ### Access the Dashboard
 - **Local Access**: http://localhost:5000
 - **Network Access**: http://your-ip:5000

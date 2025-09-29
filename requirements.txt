@@ -52,3 +52,7 @@ pip>=25.2
 
 # Email validation
 email-validator==2.2.0
+
+# CLI interface and styled argparse
+rich==13.9.2
+rich-argparse==1.6.0
