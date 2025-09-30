@@ -28,6 +28,7 @@ import sys
 import shlex
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+import socket
 
 # Initialize Flask app FIRST (before any app.logger calls)
 app = Flask(__name__)
@@ -441,6 +442,34 @@ def api_network_scan():
         system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
         return jsonify({"error": "Network scan failed"}), 500
 
+@app.route('/api/network/devices')
+def api_network_devices():
+    """Return devices discovered and stored in DB."""
+    devices = []
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT ip_address, mac_address, hostname, device_type, status, vulnerability_score, last_seen
+                FROM network_devices
+                ORDER BY last_seen DESC
+                LIMIT 500
+                """
+            ).fetchall()
+            for row in rows:
+                devices.append({
+                    'ip_address': row['ip_address'],
+                    'mac_address': row['mac_address'],
+                    'hostname': row['hostname'],
+                    'device_type': row['device_type'],
+                    'status': row['status'],
+                    'vulnerability_score': row['vulnerability_score'],
+                    'last_seen': row['last_seen']
+                })
+    except Exception as e:
+        app.logger.warning(f"network devices DB error: {e}")
+    return jsonify({'devices': devices, 'count': len(devices)})
+
 @app.route('/api/port/scan', methods=['POST'])
 def api_port_scan():
     """Initiate port scan"""
@@ -700,6 +729,35 @@ def api_charts_system_metrics():
     }
     return jsonify(data)
 
+@app.route('/api/system/metrics/history')
+def api_system_metrics_history():
+    """Return recent history of system metrics (cpu, memory)."""
+    history = []
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT timestamp, metric_name, metric_value
+                FROM system_metrics
+                WHERE metric_name IN ('cpu_usage', 'memory_usage')
+                ORDER BY id DESC
+                LIMIT 100
+                """
+            ).fetchall()
+            samples = {}
+            for row in rows:
+                ts = row['timestamp']
+                samples.setdefault(ts, {})[row['metric_name']] = row['metric_value']
+            for ts in sorted(samples.keys()):
+                history.append({
+                    'timestamp': ts,
+                    'cpu_usage': samples[ts].get('cpu_usage', 0),
+                    'memory_usage': samples[ts].get('memory_usage', 0)
+                })
+    except Exception as e:
+        app.logger.warning(f"system metrics history DB error: {e}")
+    return jsonify({'items': history[-50:]})
+
 @app.route('/api/attack/hydra', methods=['POST'])
 def api_attack_hydra():
     """Acknowledge Hydra attack request (execution disabled)"""
@@ -771,6 +829,32 @@ def api_console_execute():
         return jsonify({"output": output})
 
     return jsonify({"error": "command not allowed"}), 400
+
+@app.route('/api/wifi/networks')
+def api_wifi_networks():
+    """Safe fallback WiFi networks listing.
+    On Linux with nmcli, return parsed list; otherwise return empty list with info.
+    """
+    networks = []
+    try:
+        # Try nmcli (common on Linux)
+        stdout, stderr = run_command(['nmcli', '-t', '-f', 'SSID,SIGNAL,SECURITY', 'device', 'wifi', 'list'], timeout=10)
+        if stdout:
+            for line in stdout.splitlines():
+                try:
+                    ssid, signal, security = (line.split(':', 2) + ['','',''])[:3]
+                except Exception:
+                    ssid, signal, security = line, '', ''
+                if ssid:
+                    networks.append({
+                        'ssid': ssid,
+                        'signal': int(signal) if signal.isdigit() else None,
+                        'security': security or 'UNKNOWN'
+                    })
+    except Exception as e:
+        app.logger.info(f"nmcli not available or failed: {e}")
+
+    return jsonify({'networks': networks, 'count': len(networks)})
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
