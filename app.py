@@ -28,6 +28,7 @@ import sys
 import shlex
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+import socket
 
 # Initialize Flask app FIRST (before any app.logger calls)
 app = Flask(__name__)
@@ -418,6 +419,20 @@ def api_network_scan():
         devices = discover_network_devices(ip_range)
         system_metrics['active_scans'] -= 1
         
+        # Persist scan results
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO scan_results (scan_type, target, results, status)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    ("network", ip_range, json.dumps(devices), "completed")
+                )
+                conn.commit()
+        except Exception as db_err:
+            app.logger.warning(f"Failed to persist network scan results: {db_err}")
+
         return jsonify({
             "status": "success",
             "devices": devices,
@@ -426,6 +441,34 @@ def api_network_scan():
     except Exception as e:
         system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
         return jsonify({"error": "Network scan failed"}), 500
+
+@app.route('/api/network/devices')
+def api_network_devices():
+    """Return devices discovered and stored in DB."""
+    devices = []
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT ip_address, mac_address, hostname, device_type, status, vulnerability_score, last_seen
+                FROM network_devices
+                ORDER BY last_seen DESC
+                LIMIT 500
+                """
+            ).fetchall()
+            for row in rows:
+                devices.append({
+                    'ip_address': row['ip_address'],
+                    'mac_address': row['mac_address'],
+                    'hostname': row['hostname'],
+                    'device_type': row['device_type'],
+                    'status': row['status'],
+                    'vulnerability_score': row['vulnerability_score'],
+                    'last_seen': row['last_seen']
+                })
+    except Exception as e:
+        app.logger.warning(f"network devices DB error: {e}")
+    return jsonify({'devices': devices, 'count': len(devices)})
 
 @app.route('/api/port/scan', methods=['POST'])
 def api_port_scan():
@@ -441,6 +484,20 @@ def api_port_scan():
         system_metrics['active_scans'] += 1
         ports = scan_ports(target_ip, port_range)
         system_metrics['active_scans'] -= 1
+
+        # Persist scan results
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO scan_results (scan_type, target, results, status)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    ("port", target_ip, json.dumps(ports), "completed")
+                )
+                conn.commit()
+        except Exception as db_err:
+            app.logger.warning(f"Failed to persist port scan results: {db_err}")
         
         return jsonify({
             "status": "success",
@@ -452,17 +509,97 @@ def api_port_scan():
         system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
         return jsonify({"error": "Port scan failed"}), 500
 
+@app.route('/api/vulnerability/scan', methods=['POST'])
+def api_vulnerability_scan():
+    """Basic vulnerability assessment based on open ports and heuristics"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    intensity = (data.get('intensity') or 'medium').lower()
+
+    if not target_ip or not validate_ip_address(target_ip):
+        return jsonify({"error": "valid target_ip required"}), 400
+
+    intensity_port_map = {
+        'low': '22,80,443',
+        'medium': '1-1024',
+        'high': '1-2000',
+        'aggressive': '1-5000'
+    }
+    port_range = intensity_port_map.get(intensity, '1-1024')
+
+    try:
+        system_metrics['active_scans'] += 1
+        open_ports = scan_ports(target_ip, port_range)
+        system_metrics['active_scans'] -= 1
+
+        vulnerability_catalog = []
+        for entry in open_ports:
+            port = entry.get('port')
+            service = entry.get('service') or 'unknown'
+            severity = 'low'
+            if port in (21, 23, 25, 110):
+                severity = 'high'
+            elif port in (80, 443):
+                severity = 'medium'
+            elif port in (22,):
+                severity = 'medium'
+            vulnerability_catalog.append({
+                'port': port,
+                'service': service,
+                'severity': severity,
+                'description': f'Open {service.upper()} service on port {port}'
+            })
+
+        total_found = len([v for v in vulnerability_catalog if v['severity'] != 'low'])
+
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO scan_results (scan_type, target, results, status)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    ("vulnerability", target_ip, json.dumps(vulnerability_catalog), "completed")
+                )
+                conn.commit()
+        except Exception as db_err:
+            app.logger.warning(f"Failed to persist vulnerability scan results: {db_err}")
+
+        system_metrics['vulnerabilities'] = total_found
+
+        return jsonify({
+            'status': 'success',
+            'target': target_ip,
+            'vulnerabilities': vulnerability_catalog,
+            'total_found': total_found
+        })
+    except Exception as e:
+        system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
+        return jsonify({"error": "Vulnerability scan failed"}), 500
+
 @app.route('/api/charts/scan_results')
 def api_charts_scan_results():
-    """Get data for scan results chart"""
+    """Get data for scan results chart from DB metrics"""
+    active = 0
+    inactive = 0
+    vulnerable = 0
+    try:
+        with get_db_connection() as conn:
+            active = conn.execute(
+                "SELECT COUNT(*) FROM network_devices WHERE status = 'active'"
+            ).fetchone()[0]
+            total = conn.execute("SELECT COUNT(*) FROM network_devices").fetchone()[0]
+            inactive = max(0, total - active)
+            vulnerable = conn.execute(
+                "SELECT COUNT(*) FROM network_devices WHERE vulnerability_score > 0"
+            ).fetchone()[0]
+    except Exception as e:
+        app.logger.warning(f"scan_results chart DB error: {e}")
+
     data = {
         "labels": ["Active Hosts", "Inactive Hosts", "Vulnerable"],
         "datasets": [{
-            "data": [
-                system_metrics['devices_found'],
-                1,  # Minimal fallback
-                system_metrics['vulnerabilities']
-            ],
+            "data": [active, inactive, vulnerable],
             "backgroundColor": ["#00ff41", "#ff00de", "#c000ff"]
         }]
     }
@@ -470,15 +607,30 @@ def api_charts_scan_results():
 
 @app.route('/api/charts/port_status')
 def api_charts_port_status():
-    """Get data for port status chart"""
-    common_ports = ["SSH", "HTTP", "HTTPS", "FTP", "SMB", "RDP"]
-    port_data = [secrets.randbelow(10) + 1 for _ in common_ports]
-    
+    """Get data for port status chart from last port scan results"""
+    labels = ["SSH", "HTTP", "HTTPS", "FTP", "SMB", "RDP"]
+    service_to_label = { 'ssh': 'SSH', 'http': 'HTTP', 'https': 'HTTPS', 'ftp': 'FTP', 'smb': 'SMB', 'rdp': 'RDP' }
+    counts = {label: 0 for label in labels}
+    try:
+        with get_db_connection() as conn:
+            row = conn.execute(
+                "SELECT results FROM scan_results WHERE scan_type = 'port' ORDER BY timestamp DESC LIMIT 1"
+            ).fetchone()
+            if row:
+                results = json.loads(row[0])
+                for entry in results:
+                    service = (entry.get('service') or 'unknown').lower()
+                    mapped = service_to_label.get(service)
+                    if mapped:
+                        counts[mapped] += 1
+    except Exception as e:
+        app.logger.warning(f"port_status chart DB error: {e}")
+
     data = {
-        "labels": common_ports,
+        "labels": labels,
         "datasets": [{
             "label": "Open Ports",
-            "data": port_data,
+            "data": [counts[l] for l in labels],
             "backgroundColor": ["#c000ff", "#ff00de", "#00ff41", "#c000ff", "#ff00de", "#00ff41"]
         }]
     }
@@ -486,18 +638,42 @@ def api_charts_port_status():
 
 @app.route('/api/charts/vulnerability')
 def api_charts_vulnerability():
-    """Get data for vulnerability radar chart"""
+    """Get data for vulnerability radar chart from last vulnerability scan"""
+    categories = [
+        "Remote Code",
+        "Privilege Escalation",
+        "Information Disclosure",
+        "Denial of Service",
+        "Authentication Bypass"
+    ]
+    values = [0, 0, 0, 0, 0]
+    try:
+        with get_db_connection() as conn:
+            row = conn.execute(
+                "SELECT results FROM scan_results WHERE scan_type = 'vulnerability' ORDER BY timestamp DESC LIMIT 1"
+            ).fetchone()
+            if row:
+                vulns = json.loads(row[0])
+                severity_counts = {'low': 0, 'medium': 0, 'high': 0}
+                for v in vulns:
+                    severity = (v.get('severity') or 'low').lower()
+                    if severity in severity_counts:
+                        severity_counts[severity] += 1
+                values = [
+                    severity_counts['high'] * 20,
+                    severity_counts['medium'] * 15,
+                    severity_counts['low'] * 10,
+                    max(0, severity_counts['high'] - 1) * 10,
+                    max(0, severity_counts['medium'] - 1) * 5
+                ]
+    except Exception as e:
+        app.logger.warning(f"vulnerability chart DB error: {e}")
+
     data = {
-        "labels": ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"],
+        "labels": categories,
         "datasets": [{
             "label": "Vulnerability Level",
-            "data": [
-                secrets.randbelow(61) + 30,
-                secrets.randbelow(61) + 20,
-                secrets.randbelow(61) + 10,
-                secrets.randbelow(51) + 40,
-                secrets.randbelow(51) + 10
-            ],
+            "data": values,
             "backgroundColor": "rgba(192, 0, 255, 0.2)",
             "borderColor": "#c000ff"
         }]
@@ -506,28 +682,179 @@ def api_charts_vulnerability():
 
 @app.route('/api/charts/system_metrics')
 def api_charts_system_metrics():
-    """Get data for system metrics chart"""
-    now = datetime.now()
-    timestamps = [(now - timedelta(minutes=x*15)).strftime("%H:%M") for x in range(7, 0, -1)]
-    
+    """Get data for system metrics chart from DB history"""
+    labels = []
+    cpu_values = []
+    mem_values = []
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT timestamp, metric_name, metric_value
+                FROM system_metrics
+                WHERE metric_name IN ('cpu_usage', 'memory_usage')
+                ORDER BY id DESC
+                LIMIT 50
+                """
+            ).fetchall()
+            samples = {}
+            for row in rows:
+                ts = row['timestamp']
+                name = row['metric_name']
+                val = row['metric_value']
+                samples.setdefault(ts, {})[name] = val
+            for ts in sorted(samples.keys())[-12:]:
+                labels.append(datetime.fromisoformat(ts).strftime('%H:%M'))
+                cpu_values.append(samples[ts].get('cpu_usage', 0))
+                mem_values.append(samples[ts].get('memory_usage', 0))
+    except Exception as e:
+        app.logger.warning(f"system_metrics chart DB error: {e}")
+
     data = {
-        "labels": timestamps,
+        "labels": labels,
         "datasets": [
             {
                 "label": "CPU Usage",
-                "data": [secrets.randbelow(51) + 30 for _ in timestamps],
+                "data": cpu_values,
                 "borderColor": "#c000ff",
                 "backgroundColor": "transparent"
             },
             {
                 "label": "Memory Usage",
-                "data": [secrets.randbelow(41) + 20 for _ in timestamps],
+                "data": mem_values,
                 "borderColor": "#ff00de",
                 "backgroundColor": "transparent"
             }
         ]
     }
     return jsonify(data)
+
+@app.route('/api/system/metrics/history')
+def api_system_metrics_history():
+    """Return recent history of system metrics (cpu, memory)."""
+    history = []
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT timestamp, metric_name, metric_value
+                FROM system_metrics
+                WHERE metric_name IN ('cpu_usage', 'memory_usage')
+                ORDER BY id DESC
+                LIMIT 100
+                """
+            ).fetchall()
+            samples = {}
+            for row in rows:
+                ts = row['timestamp']
+                samples.setdefault(ts, {})[row['metric_name']] = row['metric_value']
+            for ts in sorted(samples.keys()):
+                history.append({
+                    'timestamp': ts,
+                    'cpu_usage': samples[ts].get('cpu_usage', 0),
+                    'memory_usage': samples[ts].get('memory_usage', 0)
+                })
+    except Exception as e:
+        app.logger.warning(f"system metrics history DB error: {e}")
+    return jsonify({'items': history[-50:]})
+
+@app.route('/api/attack/hydra', methods=['POST'])
+def api_attack_hydra():
+    """Acknowledge Hydra attack request (execution disabled)"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    protocol = (data.get('protocol') or 'ssh').lower()
+    if not target_ip or not validate_ip_address(target_ip):
+        return jsonify({"error": "valid target_ip required"}), 400
+    message = (
+        f"Hydra attack requested for {protocol.upper()} on {target_ip}. "
+        "Execution is disabled in this environment, request logged."
+    )
+    try:
+        with get_db_connection() as conn:
+            conn.execute(
+                "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
+                ("hydra", target_ip, "requested", json.dumps({"protocol": protocol}))
+            )
+            conn.commit()
+    except Exception as e:
+        app.logger.warning(f"Failed to log hydra attack: {e}")
+    return jsonify({"status": "acknowledged", "message": message})
+
+@app.route('/api/attack/metasploit', methods=['POST'])
+def api_attack_metasploit():
+    """Acknowledge Metasploit exploit request (execution disabled)"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    exploit = (data.get('exploit') or 'generic')
+    if not target_ip or not validate_ip_address(target_ip):
+        return jsonify({"error": "valid target_ip required"}), 400
+    message = (
+        f"Metasploit exploit '{exploit}' requested for {target_ip}. "
+        "Execution is disabled in this environment, request logged."
+    )
+    try:
+        with get_db_connection() as conn:
+            conn.execute(
+                "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
+                ("metasploit", target_ip, "requested", json.dumps({"exploit": exploit}))
+            )
+            conn.commit()
+    except Exception as e:
+        app.logger.warning(f"Failed to log metasploit attack: {e}")
+    return jsonify({"status": "acknowledged", "message": message})
+
+@app.route('/api/console/execute', methods=['POST'])
+def api_console_execute():
+    """Execute a limited set of safe console commands"""
+    data = request.get_json() or {}
+    command = (data.get('command') or '').strip()
+    if not command:
+        return jsonify({"error": "command required"}), 400
+
+    allowed = {
+        'date': ['date'],
+        'uname': ['uname', '-a'],
+        'uptime': ['uptime'],
+        'whoami': ['whoami']
+    }
+
+    if command.startswith('echo '):
+        text = command[5:].strip()
+        return jsonify({"output": text})
+
+    if command in allowed:
+        stdout, stderr = run_command(allowed[command])
+        output = (stdout or '').strip() or (stderr or '').strip() or '(no output)'
+        return jsonify({"output": output})
+
+    return jsonify({"error": "command not allowed"}), 400
+
+@app.route('/api/wifi/networks')
+def api_wifi_networks():
+    """Safe fallback WiFi networks listing.
+    On Linux with nmcli, return parsed list; otherwise return empty list with info.
+    """
+    networks = []
+    try:
+        # Try nmcli (common on Linux)
+        stdout, stderr = run_command(['nmcli', '-t', '-f', 'SSID,SIGNAL,SECURITY', 'device', 'wifi', 'list'], timeout=10)
+        if stdout:
+            for line in stdout.splitlines():
+                try:
+                    ssid, signal, security = (line.split(':', 2) + ['','',''])[:3]
+                except Exception:
+                    ssid, signal, security = line, '', ''
+                if ssid:
+                    networks.append({
+                        'ssid': ssid,
+                        'signal': int(signal) if signal.isdigit() else None,
+                        'security': security or 'UNKNOWN'
+                    })
+    except Exception as e:
+        app.logger.info(f"nmcli not available or failed: {e}")
+
+    return jsonify({'networks': networks, 'count': len(networks)})
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
