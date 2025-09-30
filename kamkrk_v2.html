@@ -1252,6 +1252,8 @@
                     method: method,
                     headers: {
                         'Content-Type': 'application/json',
+                        // Optionally include API key if set via env injected in template
+                        //'X-API-Key': window.CYBER_MATRIX_API_KEY || ''
                     }
                 };
                 
@@ -1289,15 +1291,19 @@
             try {
                 const metrics = await apiCall('/system/metrics');
                 
-                // Update progress bars
-                document.querySelector('.progress-fill[style*="65%"]').style.width = `${metrics.cpu_usage}%`;
-                document.querySelector('.progress-fill[style*="65%"]').parentElement.nextElementSibling.textContent = `${Math.round(metrics.cpu_usage)}%`;
-                
-                document.querySelector('.progress-fill[style*="42%"]').style.width = `${metrics.memory_usage}%`;
-                document.querySelector('.progress-fill[style*="42%"]').parentElement.nextElementSibling.textContent = `${Math.round(metrics.memory_usage)}%`;
-                
-                document.querySelector('.progress-fill[style*="78%"]').style.width = `${metrics.network_traffic}%`;
-                document.querySelector('.progress-fill[style*="78%"]').parentElement.nextElementSibling.textContent = `${Math.round(metrics.network_traffic)}%`;
+                // Update progress bars robustly by labels
+                const sections = document.querySelectorAll('.holographic-card .grid .progress-bar');
+                if (sections.length >= 3) {
+                    // CPU
+                    sections[0].querySelector('.progress-fill').style.width = `${metrics.cpu_usage}%`;
+                    sections[0].parentElement.nextElementSibling.textContent = `${Math.round(metrics.cpu_usage)}%`;
+                    // Memory
+                    sections[1].querySelector('.progress-fill').style.width = `${metrics.memory_usage}%`;
+                    sections[1].parentElement.nextElementSibling.textContent = `${Math.round(metrics.memory_usage)}%`;
+                    // Network
+                    sections[2].querySelector('.progress-fill').style.width = `${metrics.network_traffic}%`;
+                    sections[2].parentElement.nextElementSibling.textContent = `${Math.round(metrics.network_traffic)}%`;
+                }
                 
                 // Update status indicators
                 const statusElements = document.querySelectorAll('.status-indicator + span');
@@ -1306,14 +1312,7 @@
                     statusElements[2].textContent = `VULNERABLE: ${metrics.vulnerabilities}`;
                 }
                 
-                // Update data displays
-                const dataValues = document.querySelectorAll('.data-value');
-                if (dataValues.length >= 4) {
-                    dataValues[0].textContent = (Math.random() * 50 + 20).toFixed(3);
-                    dataValues[1].textContent = (Math.random() * 40 + 15).toFixed(3);
-                    dataValues[2].textContent = (Math.random() * 20 + 5).toFixed(3);
-                    dataValues[3].textContent = (Math.random() * 30 + 10).toFixed(3);
-                }
+                // Remove random data display updates; values will remain static unless backed by API
                 
             } catch (error) {
                 console.error('Failed to update system metrics:', error);
@@ -1346,29 +1345,7 @@
             });
             
             } catch (error) {
-                // Fallback to static data if API fails
-                scanResultsChart = new Chart(scanResultsCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Active Hosts', 'Inactive Hosts', 'Vulnerable'],
-                        datasets: [{
-                            data: [12, 3, 5],
-                            backgroundColor: ['#00ff41', '#ff00de', '#c000ff']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                labels: {
-                                    color: '#c9d1d9',
-                                    font: { family: 'Fira Code' }
-                                }
-                            }
-                        }
-                    }
-                });
+                addConsoleMessage('Scan results chart failed to load', 'text-red-400');
             }
             
             // Port Status Chart
@@ -1415,27 +1392,7 @@
             });
             
             } catch (error) {
-                // Fallback to static data
-                portStatusChart = new Chart(portStatusCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['SSH', 'HTTP', 'HTTPS', 'FTP', 'SMB', 'RDP'],
-                        datasets: [{
-                            label: 'Port Status',
-                            data: [22, 80, 443, 21, 445, 3389],
-                            backgroundColor: ['#c000ff', '#ff00de', '#00ff41', '#c000ff', '#ff00de', '#00ff41']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, grid: { color: 'rgba(192, 0, 255, 0.1)' }, ticks: { color: '#c9d1d9', font: { family: 'Fira Code' }}},
-                            x: { grid: { color: 'rgba(192, 0, 255, 0.1)' }, ticks: { color: '#c9d1d9', font: { family: 'Fira Code' }}}
-                        },
-                        plugins: { legend: { display: false }}
-                    }
-                });
+                addConsoleMessage('Port status chart failed to load', 'text-red-400');
             }
             
             // Vulnerability Chart
@@ -1484,296 +1441,36 @@
                     }
                 }
             });
+            } catch (error) {
+                addConsoleMessage('Vulnerability chart failed to load', 'text-red-400');
+            }
             
-            // Attack Progress Chart
+            // Attack Progress Chart (initialize empty; will populate upon actions if needed)
             const attackProgressCtx = document.getElementById('attackProgressChart').getContext('2d');
-            new Chart(attackProgressCtx, {
+            attackProgressChart = new Chart(attackProgressCtx, {
                 type: 'line',
-                data: {
-                    labels: ['00:00', '00:30', '01:00', '01:30', '02:00', '02:30'],
-                    datasets: [{
-                        label: 'Hydra Attack',
-                        data: [0, 20, 45, 60, 80, 95],
-                        borderColor: '#ff00de',
-                        backgroundColor: 'rgba(255, 0, 222, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            min: 0,
-                            max: 100,
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    }
-                }
+                data: { labels: [], datasets: [{ label: 'Hydra Attack', data: [], borderColor: '#ff00de', backgroundColor: 'rgba(255, 0, 222, 0.1)', tension: 0.4, fill: true }]},
+                options: { responsive: true, maintainAspectRatio: false }
             });
             
-            // System Metrics Chart
+            // System Metrics Chart - initialize from API
             const systemMetricsCtx = document.getElementById('systemMetricsChart').getContext('2d');
-            new Chart(systemMetricsCtx, {
-                type: 'line',
-                data: {
-                    labels: ['10:00', '10:15', '10:30', '10:45', '11:00', '11:15', '11:30'],
-                    datasets: [
-                        {
-                            label: 'CPU Usage',
-                            data: [45, 52, 38, 65, 72, 58, 62],
-                            borderColor: '#c000ff',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Memory Usage',
-                            data: [38, 42, 35, 48, 52, 45, 50],
-                            borderColor: '#ff00de',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            try {
+                const chartData = await apiCall('/charts/system_metrics');
+                systemMetricsChart = new Chart(systemMetricsCtx, {
+                    type: 'line',
+                    data: chartData,
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            } catch (error) {
+                addConsoleMessage('System metrics chart failed to load', 'text-red-400');
+            }
 
-            // Financial Chart
-            const financialCtx = document.getElementById('financialChart').getContext('2d');
-            new Chart(financialCtx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-                    datasets: [{
-                        label: 'Security Index',
-                        data: [44.291, 38.417, 12.002, 20.556, 44.870, 38.500, 42.100],
-                        borderColor: '#00ff41',
-                        backgroundColor: 'rgba(0, 255, 65, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            // Financial Chart removed (mock data)
 
-            // Candlestick Chart
-            const candlestickCtx = document.getElementById('candlestickChart').getContext('2d');
-            new Chart(candlestickCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'Network Activity',
-                        data: [8.785, 4.174, 8.510, 5.415, 2.405, 2.175, 4.479],
-                        backgroundColor: [
-                            '#00ff41', '#ff00de', '#00ff41', '#c000ff', 
-                            '#ff00de', '#ff00de', '#00ff41'
-                        ],
-                        borderColor: '#000',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
+            // Candlestick Chart removed (mock data)
 
-            // Performance Chart
-            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
-            new Chart(performanceCtx, {
-                type: 'line',
-                data: {
-                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '00:00'],
-                    datasets: [
-                        {
-                            label: 'Response Time',
-                            data: [5.415, 4.183, 4.178, 6.861, 5.200, 4.500, 5.100],
-                            borderColor: '#c000ff',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Throughput',
-                            data: [2.405, 2.175, 4.479, 5.990, 6.200, 5.500, 4.800],
-                            borderColor: '#00ff41',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            // Performance Chart removed (mock data)
         }
         
         // Initialize 3D Satellite Network Map
@@ -1877,43 +1574,14 @@
             addConsoleMessage('CYBER-MATRIX v8.0 initialized successfully', 'text-green-400');
             addConsoleMessage('All systems online and ready', 'text-blue-400');
             
-            // Add sample console output
-            const consoleOutput = document.getElementById('console-output');
-            const commands = [
-                {text: "> Scanning network 192.168.1.0/24...", color: "text-green-400"},
-                {text: "> Found 12 active hosts", color: "text-green-400"},
-                {text: "> 5 hosts identified as vulnerable", color: "text-yellow-400"},
-                {text: "> Initiating port scan on 192.168.1.10...", color: "text-blue-400"},
-                {text: "> Open ports: 22(SSH), 80(HTTP), 443(HTTPS), 21(FTP)", color: "text-green-400"},
-                {text: "> Vulnerability scan completed", color: "text-blue-400"},
-                {text: "> 3 high severity vulnerabilities found", color: "text-red-400"},
-                {text: "> Neural network analysis complete", color: "text-purple-400"},
-                {text: "> Ready for penetration testing", color: "text-green-400"}
-            ];
-            
-            let i = 0;
-            const interval = setInterval(() => {
-                if (i < commands.length) {
-                    const div = document.createElement('div');
-                    div.className = commands[i].color;
-                    div.textContent = commands[i].text;
-                    consoleOutput.appendChild(div);
-                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
-                    i++;
-                } else {
-                    clearInterval(interval);
-                }
-            }, 800);
-            
             // Button Event Handlers
             setupButtonHandlers();
-        }
+        });
         
         // Setup button event handlers
         function setupButtonHandlers() {
             // Network Scan Button
-            const networkScanBtn = document.querySelector('button:contains("INITIATE NETWORK SCAN")') || 
-                                 Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('NETWORK SCAN'));
+            const networkScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.trim().toUpperCase().includes('INITIATE NETWORK SCAN'));
             if (networkScanBtn) {
                 networkScanBtn.addEventListener('click', async function() {
                     addVisualFeedback(this);
@@ -1937,7 +1605,7 @@
             }
             
             // Port Scan Button
-            const portScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('PORT SCAN'));
+            const portScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.trim().toUpperCase().includes('INITIATE PORT SCAN'));
             if (portScanBtn) {
                 portScanBtn.addEventListener('click', async function() {
                     addVisualFeedback(this);
@@ -1968,7 +1636,7 @@
             }
             
             // Vulnerability Scan Button
-            const vulnScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('VULNERABILITY SCAN'));
+            const vulnScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.trim().toUpperCase().includes('INITIATE VULNERABILITY SCAN'));
             if (vulnScanBtn) {
                 vulnScanBtn.addEventListener('click', async function() {
                     addVisualFeedback(this);
@@ -2132,7 +1800,7 @@
                     card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
                 });
             });
-        });
+        }
     </script>
 </body>
 </html>
