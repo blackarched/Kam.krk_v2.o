@@ -28,6 +28,7 @@ import sys
 import shlex
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from network_interface_manager import network_manager
 
 # Initialize Flask app FIRST (before any app.logger calls)
 app = Flask(__name__)
@@ -391,91 +392,38 @@ def scan_ports(target_ip, port_range="22,80,443"):
         print(f"Error in port scanning: {str(e)}")
         return []
 
-# Network interface utilities
-def _get_wireless_interface_info():
-    """Parse `iw dev` output to map interface -> type (e.g., managed/monitor)."""
-    iw_info = {}
-    try:
-        stdout, stderr = run_command(["iw", "dev"], timeout=10)
-        if not stdout:
-            return iw_info
-        current = None
-        for raw_line in stdout.splitlines():
-            line = raw_line.strip()
-            if line.startswith("Interface "):
-                parts = line.split()
-                if len(parts) >= 2:
-                    current = parts[1]
-                    iw_info[current] = {"type": None}
-            elif line.startswith("type ") and current:
-                parts = line.split()
-                if len(parts) >= 2:
-                    iw_info[current]["type"] = parts[1]
-    except Exception:
-        pass
-    return iw_info
-
-def _wireless_monitor_supported():
-    """Check whether the system supports monitor mode at all (via `iw list`)."""
-    try:
-        stdout, stderr = run_command(["iw", "list"], timeout=10)
-        if stdout and "* monitor" in stdout:
-            return True
-    except Exception:
-        return False
-    return False
-
+# Network interface utilities - Enhanced with NetworkInterfaceManager
 def list_network_interfaces():
-    """List network interfaces with status and basic attributes."""
-    interfaces = []
+    """List network interfaces with status and basic attributes using NetworkInterfaceManager."""
     try:
-        stats = psutil.net_if_stats()
-        addrs = psutil.net_if_addrs()
-        iw_info = _get_wireless_interface_info()
-        monitor_supported_global = _wireless_monitor_supported()
-        for name, stat in stats.items():
-            iface_addrs = addrs.get(name, [])
-            ipv4 = None
-            ipv6 = None
-            mac = None
-            for addr in iface_addrs:
-                # psutil returns family enums; use numeric comparison
-                fam = getattr(addr, 'family', None)
-                import socket
-                if fam == socket.AF_PACKET and not mac:  # AF_PACKET = 17 (Linux MAC addresses)
-                    mac = addr.address
-                elif fam == socket.AF_INET and not ipv4:  # AF_INET = 2 (IPv4)
-                    ipv4 = addr.address
-                elif fam == socket.AF_INET6 and not ipv6:  # AF_INET6 = 10 (IPv6)
-                    ipv6 = addr.address
-            # Heuristic for type
-            lowered = name.lower()
-            if lowered.startswith('wl') or lowered.startswith('wlan'):
-                iface_type = 'wireless'
-            elif lowered == 'lo':
-                iface_type = 'loopback'
-            elif lowered.startswith('eth') or lowered.startswith('en'):
-                iface_type = 'ethernet'
-            else:
-                iface_type = 'other'
-            iw = iw_info.get(name, {})
-            monitor_enabled = iw.get('type') == 'monitor'
+        # Refresh interfaces to get latest data
+        interfaces_data = network_manager.refresh_interfaces()
+        
+        # Convert to the expected format for API compatibility
+        interfaces = []
+        for name, data in interfaces_data.items():
             interfaces.append({
-                "name": name,
-                "is_up": bool(getattr(stat, 'isup', False)),
-                "mtu": getattr(stat, 'mtu', None),
-                "speed_mbps": getattr(stat, 'speed', None),
-                "duplex": getattr(stat, 'duplex', None),
-                "ipv4": ipv4 or "",
-                "ipv6": ipv6 or "",
-                "mac": mac or "",
-                "type": iface_type,
-                "monitor_supported": monitor_supported_global and iface_type == 'wireless',
-                "monitor_enabled": monitor_enabled
+                "name": data['name'],
+                "is_up": data['is_up'],
+                "mtu": None,  # Not provided by new manager, could be added if needed
+                "speed_mbps": None,  # Not provided by new manager
+                "duplex": None,  # Not provided by new manager
+                "ipv4": data['ipv4'],
+                "ipv6": data['ipv6'],
+                "mac": data['mac'],
+                "type": data['type'],
+                "mode": data['mode'],
+                "is_wireless": data['is_wireless'],
+                "monitor_supported": data['monitor_supported'],
+                "monitor_enabled": data['is_monitor'],
+                "flags": data['flags'],
+                "last_updated": data['last_updated']
             })
+        
+        return interfaces
     except Exception as e:
         print(f"Error listing interfaces: {str(e)}")
-    return interfaces
+        return []
 
 # API: Network interfaces
 @app.route('/api/network/interfaces', methods=['GET'])
@@ -487,37 +435,81 @@ def api_network_interfaces():
 
 @app.route('/api/network/monitor', methods=['POST'])
 def api_network_monitor():
+    """Toggle monitor mode using the sophisticated NetworkInterfaceManager."""
     data = request.get_json() or {}
     iface = sanitize_input(str(data.get('interface', '')))
     enable = bool(data.get('enable', True))
+    
     if not iface:
         return jsonify({"error": "interface required"}), 400
-    # Validate interface exists
-    known = {i['name'] for i in list_network_interfaces()}
-    if iface not in known:
-        return jsonify({"error": "unknown interface"}), 404
-    # Attempt monitor toggle
+    
     try:
-        # Bring down
-        run_command(["ip", "link", "set", iface, "down"], timeout=10)
-        if enable:
-            # Enable monitor
-            stdout, stderr = run_command(["iw", "dev", iface, "set", "type", "monitor"], timeout=10)
+        # Use NetworkInterfaceManager for sophisticated monitor mode handling
+        success, error_msg = network_manager.toggle_monitor_mode(iface, enable)
+        
+        if success:
+            # Get updated interface data
+            updated_data = network_manager.get_interface_data(iface)
+            return jsonify({
+                "status": "success",
+                "interface": iface,
+                "monitor_enabled": updated_data['is_monitor'] if updated_data else enable,
+                "mode": updated_data['mode'] if updated_data else ('monitor' if enable else 'managed'),
+                "message": f"Monitor mode {'enabled' if enable else 'disabled'} on {iface}"
+            })
         else:
-            # Back to managed
-            stdout, stderr = run_command(["iw", "dev", iface, "set", "type", "managed"], timeout=10)
-        # Bring up
-        run_command(["ip", "link", "set", iface, "up"], timeout=10)
-        # Report new state
-        iw_info = _get_wireless_interface_info()
-        monitor_enabled = iw_info.get(iface, {}).get('type') == 'monitor'
+            return jsonify({
+                "error": error_msg,
+                "interface": iface,
+                "monitor_enabled": False
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to toggle monitor mode: {str(e)}",
+            "interface": iface
+        }), 500
+
+@app.route('/api/network/interfaces/refresh', methods=['POST'])
+def api_refresh_interfaces():
+    """Force refresh of network interfaces."""
+    try:
+        interfaces_data = network_manager.refresh_interfaces()
         return jsonify({
             "status": "success",
-            "interface": iface,
-            "monitor_enabled": monitor_enabled
+            "message": "Interfaces refreshed successfully",
+            "interfaces": list_network_interfaces(),
+            "summary": network_manager.get_interface_status_summary()
         })
     except Exception as e:
-        return jsonify({"error": "failed to toggle monitor mode. try running as root."}), 500
+        return jsonify({"error": f"Failed to refresh interfaces: {str(e)}"}), 500
+
+@app.route('/api/network/interfaces/summary', methods=['GET'])
+def api_interface_summary():
+    """Get interface status summary for dashboard."""
+    try:
+        summary = network_manager.get_interface_status_summary()
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({"error": f"Failed to get interface summary: {str(e)}"}), 500
+
+@app.route('/api/network/interfaces/<interface_name>', methods=['GET'])
+def api_interface_details(interface_name):
+    """Get detailed information about a specific interface."""
+    try:
+        interface_name = sanitize_input(interface_name)
+        data = network_manager.get_interface_data(interface_name)
+        
+        if data:
+            return jsonify({
+                "status": "success",
+                "interface": data
+            })
+        else:
+            return jsonify({"error": "Interface not found"}), 404
+            
+    except Exception as e:
+        return jsonify({"error": f"Failed to get interface details: {str(e)}"}), 500
 
 # API Routes
 @app.route('/')

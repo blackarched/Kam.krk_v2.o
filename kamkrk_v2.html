@@ -786,7 +786,7 @@
         
         <!-- Dashboard Grid -->
         <div class="dashboard-grid">
-            <!-- Network Scanner Card -->
+            <!-- Enhanced Network Interface Manager Card -->
             <div class="holographic-card compact-card panel-3d">
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -794,29 +794,83 @@
                 <div class="corner"></div>
                 <div class="holographic-beam"></div>
                 
-                <h2 class="text-xl font-bold mb-4" style="color: var(--primary-color);">NETWORK SCANNER</h2>
+                <h2 class="text-xl font-bold mb-4" style="color: var(--primary-color);">NETWORK INTERFACE MANAGER</h2>
                 
+                <!-- Interface Selection Section -->
                 <div class="mb-4">
-                    <label class="block text-sm mb-2" style="color: var(--primary-color);">NETWORK INTERFACE</label>
-                    <select id="interfaceSelect" class="holographic-input"></select>
-                    <div id="interfaceMeta" class="text-xs mt-2">
-                        <span id="ifaceState" class="mr-3">State: unknown</span>
-                        <span id="ifaceType" class="mr-3">Type: -</span>
-                        <span id="ifaceIp">IPv4: -</span>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm" style="color: var(--primary-color);">NETWORK INTERFACE</label>
+                        <button id="refreshInterfacesBtn" class="holographic-button text-xs px-2 py-1">⟳ REFRESH</button>
                     </div>
-                    <div class="mt-2 flex items-center gap-2">
-                        <input id="monitorToggle" type="checkbox">
-                        <label for="monitorToggle" class="text-xs">Monitor mode</label>
-                        <span id="monitorSupport" class="text-xs text-gray-400"></span>
+                    <select id="interfaceSelect" class="holographic-input w-full"></select>
+                </div>
+                
+                <!-- Interface Status Display -->
+                <div id="interfaceStatus" class="mb-4 p-3 rounded" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(192, 0, 255, 0.2);">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <span class="text-gray-400">Status:</span>
+                            <span id="ifaceState" class="ml-1 font-bold">—</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Type:</span>
+                            <span id="ifaceType" class="ml-1">—</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Mode:</span>
+                            <span id="ifaceMode" class="ml-1">—</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">IPv4:</span>
+                            <span id="ifaceIp" class="ml-1">—</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-gray-400">MAC:</span>
+                            <span id="ifaceMac" class="ml-1 font-mono text-xs">—</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-sm mb-2" style="color: var(--primary-color);">IP RANGE (CIDR)</label>
-                    <input class="holographic-input" type="text" placeholder="192.168.1.0/24" value="192.168.1.0/24">
+                <!-- Monitor Mode Control -->
+                <div class="mb-4 p-3 rounded" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 0, 222, 0.2);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <input id="monitorToggle" type="checkbox" class="scale-125">
+                                <label for="monitorToggle" class="text-sm font-bold" style="color: var(--secondary-color);">Monitor Mode</label>
+                            </div>
+                            <div id="monitorStatus" class="text-xs mt-1 text-gray-400">Select wireless interface</div>
+                        </div>
+                        <div id="monitorIndicator" class="w-3 h-3 rounded-full bg-gray-500"></div>
+                    </div>
                 </div>
                 
-                <button class="holographic-button w-full">INITIATE NETWORK SCAN</button>
+                <!-- Network Scanning Section -->
+                <div class="mb-4">
+                    <label class="block text-sm mb-2" style="color: var(--primary-color);">NETWORK SCANNING</label>
+                    <div class="flex gap-2">
+                        <input id="ipRangeInput" class="holographic-input flex-grow" type="text" placeholder="192.168.1.0/24" value="192.168.1.0/24">
+                        <button id="networkScanBtn" class="holographic-button">SCAN</button>
+                    </div>
+                </div>
+                
+                <!-- Interface Summary -->
+                <div id="interfaceSummary" class="mb-4 text-xs">
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <div class="text-gray-400">Total</div>
+                            <div id="totalInterfaces" class="font-bold" style="color: var(--accent-color);">0</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400">Wireless</div>
+                            <div id="wirelessInterfaces" class="font-bold" style="color: var(--primary-color);">0</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400">Monitor</div>
+                            <div id="monitorInterfaces" class="font-bold" style="color: var(--secondary-color);">0</div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Scan Results Chart -->
                 <div class="mt-4 relative">
@@ -1426,71 +1480,339 @@
             }
         }
 
-        // Populate network interfaces dropdown and wire monitor toggle
-        async function loadInterfaces() {
-            try {
-                const data = await apiCall('/network/interfaces');
-                interfacesCache = data.interfaces || [];
+        // Enhanced Network Interface Manager - Sophisticated Implementation
+        class NetworkInterfaceManager {
+            constructor() {
+                this.interfacesCache = [];
+                this.selectedInterface = null;
+                this.isRefreshing = false;
+                this.autoRefreshInterval = null;
+                
+                this.initializeEventHandlers();
+                this.startAutoRefresh();
+            }
+            
+            initializeEventHandlers() {
+                // Interface selection change
+                const select = document.getElementById('interfaceSelect');
+                if (select) {
+                    select.addEventListener('change', () => this.onInterfaceSelected());
+                }
+                
+                // Refresh button
+                const refreshBtn = document.getElementById('refreshInterfacesBtn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => this.refreshInterfaces());
+                }
+                
+                // Monitor mode toggle
+                const monitorToggle = document.getElementById('monitorToggle');
+                if (monitorToggle) {
+                    monitorToggle.addEventListener('change', (e) => this.toggleMonitorMode(e.target.checked));
+                }
+                
+                // Network scan button
+                const scanBtn = document.getElementById('networkScanBtn');
+                if (scanBtn) {
+                    scanBtn.addEventListener('click', () => this.initiateNetworkScan());
+                }
+            }
+            
+            async loadInterfaces() {
+                try {
+                    const data = await apiCall('/network/interfaces');
+                    this.interfacesCache = data.interfaces || [];
+                    this.updateInterfaceDropdown();
+                    this.updateInterfaceSummary();
+                    
+                    // Auto-select first interface if none selected
+                    const select = document.getElementById('interfaceSelect');
+                    if (select && this.interfacesCache.length > 0 && !select.value) {
+                        select.value = this.interfacesCache[0].name;
+                        this.onInterfaceSelected();
+                    }
+                    
+                    addConsoleMessage(`Loaded ${this.interfacesCache.length} network interfaces`, 'text-green-400');
+                } catch (e) {
+                    addConsoleMessage(`Failed to load interfaces: ${e.message}`, 'text-red-400');
+                }
+            }
+            
+            updateInterfaceDropdown() {
                 const select = document.getElementById('interfaceSelect');
                 if (!select) return;
-                select.innerHTML = '';
-                interfacesCache.forEach((iface) => {
+                
+                const currentSelection = select.value;
+                select.innerHTML = '<option value="">Select Interface...</option>';
+                
+                this.interfacesCache.forEach((iface) => {
                     const option = document.createElement('option');
                     option.value = iface.name;
-                    const state = iface.is_up ? 'up' : 'down';
-                    option.textContent = `${iface.name} (${state})`;
+                    
+                    // Create sophisticated display string
+                    const status = iface.is_up ? 'UP' : 'DOWN';
+                    const type = iface.is_wireless ? 'WiFi' : iface.type.toUpperCase();
+                    const mode = iface.is_wireless ? `[${iface.mode}]` : '';
+                    
+                    option.textContent = `${iface.name} — ${type} ${mode} (${status})`;
+                    
+                    // Color coding based on status
+                    if (iface.is_monitor) {
+                        option.style.color = '#ff00de';  // Monitor mode - magenta
+                    } else if (iface.is_up) {
+                        option.style.color = '#00ff41';  // Up - green
+                    } else {
+                        option.style.color = '#666666';  // Down - gray
+                    }
+                    
                     select.appendChild(option);
                 });
-                // Select first and update meta
-                if (interfacesCache.length) {
-                    select.value = interfacesCache[0].name;
-                    updateInterfaceMeta();
+                
+                // Restore selection if still valid
+                if (currentSelection && this.interfacesCache.find(i => i.name === currentSelection)) {
+                    select.value = currentSelection;
                 }
-                // Change handler
-                select.addEventListener('change', updateInterfaceMeta);
-                // Monitor toggle
-                const toggle = document.getElementById('monitorToggle');
-                if (toggle) {
-                    toggle.addEventListener('change', async function() {
-                        const iface = select.value;
-                        const enable = this.checked;
-                        try {
-                            const res = await apiCall('/network/monitor', 'POST', { interface: iface, enable });
-                            addConsoleMessage(`Monitor mode ${res.monitor_enabled ? 'enabled' : 'disabled'} on ${iface}`, 'text-blue-400');
-                            // Refresh interfaces
-                            await loadInterfaces();
-                            select.value = iface;
-                            updateInterfaceMeta();
-                        } catch (e) {
-                            addConsoleMessage(`Monitor toggle failed: ${e.message}`, 'text-red-400');
-                            this.checked = !enable;
-                        }
+            }
+            
+            updateInterfaceSummary() {
+                const summary = {
+                    total: this.interfacesCache.length,
+                    wireless: this.interfacesCache.filter(i => i.is_wireless).length,
+                    monitor: this.interfacesCache.filter(i => i.is_monitor).length
+                };
+                
+                document.getElementById('totalInterfaces').textContent = summary.total;
+                document.getElementById('wirelessInterfaces').textContent = summary.wireless;
+                document.getElementById('monitorInterfaces').textContent = summary.monitor;
+            }
+            
+            onInterfaceSelected() {
+                const select = document.getElementById('interfaceSelect');
+                const interfaceName = select ? select.value : '';
+                
+                this.selectedInterface = this.interfacesCache.find(i => i.name === interfaceName);
+                this.updateInterfaceDetails();
+            }
+            
+            updateInterfaceDetails() {
+                const iface = this.selectedInterface;
+                
+                // Update status elements
+                const stateEl = document.getElementById('ifaceState');
+                const typeEl = document.getElementById('ifaceType');
+                const modeEl = document.getElementById('ifaceMode');
+                const ipEl = document.getElementById('ifaceIp');
+                const macEl = document.getElementById('ifaceMac');
+                const monitorToggle = document.getElementById('monitorToggle');
+                const monitorStatus = document.getElementById('monitorStatus');
+                const monitorIndicator = document.getElementById('monitorIndicator');
+                
+                if (!iface) {
+                    // Clear all fields
+                    if (stateEl) stateEl.textContent = '—';
+                    if (typeEl) typeEl.textContent = '—';
+                    if (modeEl) modeEl.textContent = '—';
+                    if (ipEl) ipEl.textContent = '—';
+                    if (macEl) macEl.textContent = '—';
+                    if (monitorToggle) monitorToggle.disabled = true;
+                    if (monitorStatus) monitorStatus.textContent = 'Select wireless interface';
+                    if (monitorIndicator) {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-gray-500';
+                    }
+                    return;
+                }
+                
+                // Update interface details
+                if (stateEl) {
+                    stateEl.textContent = iface.is_up ? 'UP' : 'DOWN';
+                    stateEl.style.color = iface.is_up ? '#00ff41' : '#ff0000';
+                }
+                
+                if (typeEl) {
+                    typeEl.textContent = iface.is_wireless ? `Wireless (${iface.type})` : iface.type;
+                }
+                
+                if (modeEl) {
+                    modeEl.textContent = iface.mode || 'N/A';
+                    modeEl.style.color = iface.is_monitor ? '#ff00de' : '#ffffff';
+                }
+                
+                if (ipEl) {
+                    ipEl.textContent = iface.ipv4 || 'No IP';
+                }
+                
+                if (macEl) {
+                    macEl.textContent = iface.mac || 'No MAC';
+                }
+                
+                // Update monitor mode controls
+                if (monitorToggle) {
+                    monitorToggle.disabled = !iface.is_wireless || !iface.monitor_supported;
+                    monitorToggle.checked = iface.is_monitor || false;
+                }
+                
+                if (monitorStatus) {
+                    if (!iface.is_wireless) {
+                        monitorStatus.textContent = 'Not a wireless interface';
+                        monitorStatus.style.color = '#666666';
+                    } else if (!iface.monitor_supported) {
+                        monitorStatus.textContent = 'Monitor mode not supported';
+                        monitorStatus.style.color = '#ff0000';
+                    } else if (iface.is_monitor) {
+                        monitorStatus.textContent = 'Monitor mode active';
+                        monitorStatus.style.color = '#ff00de';
+                    } else {
+                        monitorStatus.textContent = 'Monitor mode available';
+                        monitorStatus.style.color = '#00ff41';
+                    }
+                }
+                
+                if (monitorIndicator) {
+                    if (iface.is_monitor) {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-pink-500 animate-pulse';
+                    } else if (iface.is_wireless && iface.monitor_supported) {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-green-500';
+                    } else {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-gray-500';
+                    }
+                }
+            }
+            
+            async toggleMonitorMode(enable) {
+                if (!this.selectedInterface) {
+                    addConsoleMessage('No interface selected', 'text-red-400');
+                    return;
+                }
+                
+                const interfaceName = this.selectedInterface.name;
+                const monitorToggle = document.getElementById('monitorToggle');
+                
+                try {
+                    // Disable controls during operation
+                    if (monitorToggle) monitorToggle.disabled = true;
+                    
+                    addConsoleMessage(`${enable ? 'Enabling' : 'Disabling'} monitor mode on ${interfaceName}...`, 'text-blue-400');
+                    
+                    const result = await apiCall('/network/monitor', 'POST', {
+                        interface: interfaceName,
+                        enable: enable
                     });
+                    
+                    addConsoleMessage(result.message || `Monitor mode ${enable ? 'enabled' : 'disabled'}`, 'text-green-400');
+                    
+                    // Refresh interface data
+                    await this.loadInterfaces();
+                    
+                    // Restore selection
+                    const select = document.getElementById('interfaceSelect');
+                    if (select) {
+                        select.value = interfaceName;
+                        this.onInterfaceSelected();
+                    }
+                    
+                } catch (error) {
+                    addConsoleMessage(`Monitor mode toggle failed: ${error.message}`, 'text-red-400');
+                    
+                    // Revert checkbox state
+                    if (monitorToggle) {
+                        monitorToggle.checked = !enable;
+                    }
+                } finally {
+                    // Re-enable controls
+                    if (monitorToggle) monitorToggle.disabled = false;
                 }
-            } catch (e) {
-                addConsoleMessage('Failed to load interfaces', 'text-red-400');
+            }
+            
+            async refreshInterfaces() {
+                if (this.isRefreshing) return;
+                
+                this.isRefreshing = true;
+                const refreshBtn = document.getElementById('refreshInterfacesBtn');
+                
+                try {
+                    if (refreshBtn) {
+                        refreshBtn.disabled = true;
+                        refreshBtn.textContent = '⟳ REFRESHING...';
+                    }
+                    
+                    await apiCall('/network/interfaces/refresh', 'POST');
+                    await this.loadInterfaces();
+                    
+                    addConsoleMessage('Interface list refreshed successfully', 'text-green-400');
+                    
+                } catch (error) {
+                    addConsoleMessage(`Failed to refresh interfaces: ${error.message}`, 'text-red-400');
+                } finally {
+                    this.isRefreshing = false;
+                    if (refreshBtn) {
+                        refreshBtn.disabled = false;
+                        refreshBtn.textContent = '⟳ REFRESH';
+                    }
+                }
+            }
+            
+            async initiateNetworkScan() {
+                const ipRangeInput = document.getElementById('ipRangeInput');
+                const scanBtn = document.getElementById('networkScanBtn');
+                const ipRange = ipRangeInput ? ipRangeInput.value : '192.168.1.0/24';
+                
+                try {
+                    if (scanBtn) {
+                        scanBtn.disabled = true;
+                        scanBtn.textContent = 'SCANNING...';
+                    }
+                    
+                    addConsoleMessage(`Initiating network scan on ${ipRange}...`, 'text-blue-400');
+                    
+                    const result = await apiCall('/network/scan', 'POST', { ip_range: ipRange });
+                    
+                    addConsoleMessage(`Network scan completed. Found ${result.total_found} devices.`, 'text-green-400');
+                    
+                    // Update scan results chart if available
+                    if (typeof updateScanResultsChart === 'function') {
+                        updateScanResultsChart();
+                    }
+                    
+                } catch (error) {
+                    addConsoleMessage(`Network scan failed: ${error.message}`, 'text-red-400');
+                } finally {
+                    if (scanBtn) {
+                        scanBtn.disabled = false;
+                        scanBtn.textContent = 'SCAN';
+                    }
+                }
+            }
+            
+            startAutoRefresh() {
+                // Auto-refresh every 30 seconds
+                this.autoRefreshInterval = setInterval(() => {
+                    if (!this.isRefreshing) {
+                        this.loadInterfaces();
+                    }
+                }, 30000);
+            }
+            
+            stopAutoRefresh() {
+                if (this.autoRefreshInterval) {
+                    clearInterval(this.autoRefreshInterval);
+                    this.autoRefreshInterval = null;
+                }
             }
         }
-
-        function updateInterfaceMeta() {
-            const select = document.getElementById('interfaceSelect');
-            const name = select ? select.value : '';
-            const iface = interfacesCache.find(i => i.name === name);
-            const stateEl = document.getElementById('ifaceState');
-            const typeEl = document.getElementById('ifaceType');
-            const ipEl = document.getElementById('ifaceIp');
-            const supportEl = document.getElementById('monitorSupport');
-            const toggle = document.getElementById('monitorToggle');
-            if (!iface) return;
-            stateEl.textContent = `State: ${iface.is_up ? 'up' : 'down'}`;
-            typeEl.textContent = `Type: ${iface.type}`;
-            ipEl.textContent = `IPv4: ${iface.ipv4 || '-'}`;
-            if (toggle) {
-                toggle.disabled = !(iface.monitor_supported && iface.type === 'wireless');
-                toggle.checked = !!iface.monitor_enabled;
+        
+        // Global network interface manager instance
+        let networkInterfaceManager = null;
+        
+        // Legacy compatibility functions
+        async function loadInterfaces() {
+            if (networkInterfaceManager) {
+                await networkInterfaceManager.loadInterfaces();
             }
-            if (supportEl) {
-                supportEl.textContent = !iface.monitor_supported ? '(monitor not supported)' : '';
+        }
+        
+        function updateInterfaceMeta() {
+            if (networkInterfaceManager) {
+                networkInterfaceManager.updateInterfaceDetails();
             }
         }
         
@@ -2230,13 +2552,17 @@
         }
         
         // Initialize everything when the page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             initMatrixRain();
             initDataStream();
             initParticles();
             initCharts();
             initSatelliteMap();
-            loadInterfaces();
+            
+            // Initialize the sophisticated Network Interface Manager
+            networkInterfaceManager = new NetworkInterfaceManager();
+            await networkInterfaceManager.loadInterfaces();
+            
             setupGenericButtonHandlers();
             setupApiKeyHandlers();
             
@@ -2292,30 +2618,7 @@
         
         // Setup button event handlers
         function setupButtonHandlers() {
-            // Network Scan Button
-            const networkScanBtn = document.querySelector('button:contains("INITIATE NETWORK SCAN")') || 
-                                 Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('NETWORK SCAN'));
-            if (networkScanBtn) {
-                networkScanBtn.addEventListener('click', async function() {
-                    addVisualFeedback(this);
-                    addConsoleMessage('Initiating network scan...', 'text-blue-400');
-                    
-                    try {
-                        const ipRange = document.querySelector('input[placeholder="192.168.1.0/24"]').value || '192.168.1.0/24';
-                        const result = await apiCall('/network/scan', 'POST', { ip_range: ipRange });
-                        addConsoleMessage(`Network scan completed. Found ${result.total_found} devices.`, 'text-green-400');
-                        
-                        // Update scan results chart
-                        if (scanResultsChart) {
-                            const chartData = await apiCall('/charts/scan_results');
-                            scanResultsChart.data = chartData;
-                            scanResultsChart.update();
-                        }
-                    } catch (error) {
-                        addConsoleMessage(`Network scan failed: ${error.message}`, 'text-red-400');
-                    }
-                });
-            }
+            // Network scan is now handled by NetworkInterfaceManager class
             
             // Port Scan Button
             const portScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('PORT SCAN'));
@@ -2480,6 +2783,19 @@
             
             // Update other charts as needed
             updateSystemMetrics();
+        }
+        
+        // Helper function to update scan results chart
+        async function updateScanResultsChart() {
+            if (scanResultsChart) {
+                try {
+                    const chartData = await apiCall('/charts/scan_results');
+                    scanResultsChart.data = chartData;
+                    scanResultsChart.update();
+                } catch (error) {
+                    console.error('Failed to update scan results chart:', error);
+                }
+            }
         }
         
         // Setup API key handlers
