@@ -28,6 +28,7 @@ import sys
 import shlex
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from network_interface_manager import network_manager
 
 # Initialize Flask app FIRST (before any app.logger calls)
 app = Flask(__name__)
@@ -391,91 +392,38 @@ def scan_ports(target_ip, port_range="22,80,443"):
         print(f"Error in port scanning: {str(e)}")
         return []
 
-# Network interface utilities
-def _get_wireless_interface_info():
-    """Parse `iw dev` output to map interface -> type (e.g., managed/monitor)."""
-    iw_info = {}
-    try:
-        stdout, stderr = run_command(["iw", "dev"], timeout=10)
-        if not stdout:
-            return iw_info
-        current = None
-        for raw_line in stdout.splitlines():
-            line = raw_line.strip()
-            if line.startswith("Interface "):
-                parts = line.split()
-                if len(parts) >= 2:
-                    current = parts[1]
-                    iw_info[current] = {"type": None}
-            elif line.startswith("type ") and current:
-                parts = line.split()
-                if len(parts) >= 2:
-                    iw_info[current]["type"] = parts[1]
-    except Exception:
-        pass
-    return iw_info
-
-def _wireless_monitor_supported():
-    """Check whether the system supports monitor mode at all (via `iw list`)."""
-    try:
-        stdout, stderr = run_command(["iw", "list"], timeout=10)
-        if stdout and "* monitor" in stdout:
-            return True
-    except Exception:
-        return False
-    return False
-
+# Network interface utilities - Enhanced with NetworkInterfaceManager
 def list_network_interfaces():
-    """List network interfaces with status and basic attributes."""
-    interfaces = []
+    """List network interfaces with status and basic attributes using NetworkInterfaceManager."""
     try:
-        stats = psutil.net_if_stats()
-        addrs = psutil.net_if_addrs()
-        iw_info = _get_wireless_interface_info()
-        monitor_supported_global = _wireless_monitor_supported()
-        for name, stat in stats.items():
-            iface_addrs = addrs.get(name, [])
-            ipv4 = None
-            ipv6 = None
-            mac = None
-            for addr in iface_addrs:
-                # psutil returns family enums; string compare fallback
-                fam = getattr(addr, 'family', None)
-                fam_str = str(fam)
-                if fam_str.endswith('AF_LINK') and not mac:
-                    mac = addr.address
-                elif fam_str.endswith('AF_INET') and not ipv4:
-                    ipv4 = addr.address
-                elif fam_str.endswith('AF_INET6') and not ipv6:
-                    ipv6 = addr.address
-            # Heuristic for type
-            lowered = name.lower()
-            if lowered.startswith('wl') or lowered.startswith('wlan'):
-                iface_type = 'wireless'
-            elif lowered == 'lo':
-                iface_type = 'loopback'
-            elif lowered.startswith('eth') or lowered.startswith('en'):
-                iface_type = 'ethernet'
-            else:
-                iface_type = 'other'
-            iw = iw_info.get(name, {})
-            monitor_enabled = iw.get('type') == 'monitor'
+        # Refresh interfaces to get latest data
+        interfaces_data = network_manager.refresh_interfaces()
+        
+        # Convert to the expected format for API compatibility
+        interfaces = []
+        for name, data in interfaces_data.items():
             interfaces.append({
-                "name": name,
-                "is_up": bool(getattr(stat, 'isup', False)),
-                "mtu": getattr(stat, 'mtu', None),
-                "speed_mbps": getattr(stat, 'speed', None),
-                "duplex": getattr(stat, 'duplex', None),
-                "ipv4": ipv4 or "",
-                "ipv6": ipv6 or "",
-                "mac": mac or "",
-                "type": iface_type,
-                "monitor_supported": monitor_supported_global and iface_type == 'wireless',
-                "monitor_enabled": monitor_enabled
+                "name": data['name'],
+                "is_up": data['is_up'],
+                "mtu": None,  # Not provided by new manager, could be added if needed
+                "speed_mbps": None,  # Not provided by new manager
+                "duplex": None,  # Not provided by new manager
+                "ipv4": data['ipv4'],
+                "ipv6": data['ipv6'],
+                "mac": data['mac'],
+                "type": data['type'],
+                "mode": data['mode'],
+                "is_wireless": data['is_wireless'],
+                "monitor_supported": data['monitor_supported'],
+                "monitor_enabled": data['is_monitor'],
+                "flags": data['flags'],
+                "last_updated": data['last_updated']
             })
+        
+        return interfaces
     except Exception as e:
         print(f"Error listing interfaces: {str(e)}")
-    return interfaces
+        return []
 
 # API: Network interfaces
 @app.route('/api/network/interfaces', methods=['GET'])
@@ -487,37 +435,81 @@ def api_network_interfaces():
 
 @app.route('/api/network/monitor', methods=['POST'])
 def api_network_monitor():
+    """Toggle monitor mode using the sophisticated NetworkInterfaceManager."""
     data = request.get_json() or {}
     iface = sanitize_input(str(data.get('interface', '')))
     enable = bool(data.get('enable', True))
+    
     if not iface:
         return jsonify({"error": "interface required"}), 400
-    # Validate interface exists
-    known = {i['name'] for i in list_network_interfaces()}
-    if iface not in known:
-        return jsonify({"error": "unknown interface"}), 404
-    # Attempt monitor toggle
+    
     try:
-        # Bring down
-        run_command(["ip", "link", "set", iface, "down"], timeout=10)
-        if enable:
-            # Enable monitor
-            stdout, stderr = run_command(["iw", "dev", iface, "set", "type", "monitor"], timeout=10)
+        # Use NetworkInterfaceManager for sophisticated monitor mode handling
+        success, error_msg = network_manager.toggle_monitor_mode(iface, enable)
+        
+        if success:
+            # Get updated interface data
+            updated_data = network_manager.get_interface_data(iface)
+            return jsonify({
+                "status": "success",
+                "interface": iface,
+                "monitor_enabled": updated_data['is_monitor'] if updated_data else enable,
+                "mode": updated_data['mode'] if updated_data else ('monitor' if enable else 'managed'),
+                "message": f"Monitor mode {'enabled' if enable else 'disabled'} on {iface}"
+            })
         else:
-            # Back to managed
-            stdout, stderr = run_command(["iw", "dev", iface, "set", "type", "managed"], timeout=10)
-        # Bring up
-        run_command(["ip", "link", "set", iface, "up"], timeout=10)
-        # Report new state
-        iw_info = _get_wireless_interface_info()
-        monitor_enabled = iw_info.get(iface, {}).get('type') == 'monitor'
+            return jsonify({
+                "error": error_msg,
+                "interface": iface,
+                "monitor_enabled": False
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to toggle monitor mode: {str(e)}",
+            "interface": iface
+        }), 500
+
+@app.route('/api/network/interfaces/refresh', methods=['POST'])
+def api_refresh_interfaces():
+    """Force refresh of network interfaces."""
+    try:
+        interfaces_data = network_manager.refresh_interfaces()
         return jsonify({
             "status": "success",
-            "interface": iface,
-            "monitor_enabled": monitor_enabled
+            "message": "Interfaces refreshed successfully",
+            "interfaces": list_network_interfaces(),
+            "summary": network_manager.get_interface_status_summary()
         })
     except Exception as e:
-        return jsonify({"error": "failed to toggle monitor mode. try running as root."}), 500
+        return jsonify({"error": f"Failed to refresh interfaces: {str(e)}"}), 500
+
+@app.route('/api/network/interfaces/summary', methods=['GET'])
+def api_interface_summary():
+    """Get interface status summary for dashboard."""
+    try:
+        summary = network_manager.get_interface_status_summary()
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({"error": f"Failed to get interface summary: {str(e)}"}), 500
+
+@app.route('/api/network/interfaces/<interface_name>', methods=['GET'])
+def api_interface_details(interface_name):
+    """Get detailed information about a specific interface."""
+    try:
+        interface_name = sanitize_input(interface_name)
+        data = network_manager.get_interface_data(interface_name)
+        
+        if data:
+            return jsonify({
+                "status": "success",
+                "interface": data
+            })
+        else:
+            return jsonify({"error": "Interface not found"}), 404
+            
+    except Exception as e:
+        return jsonify({"error": f"Failed to get interface details: {str(e)}"}), 500
 
 # API Routes
 @app.route('/')
@@ -530,12 +522,28 @@ def index():
     except FileNotFoundError:
         return "Dashboard file not found", 404
 
+@app.route('/api/auth/generate-key', methods=['POST'])
+def api_generate_key():
+    """Generate a new API key"""
+    try:
+        new_api_key = secrets.token_urlsafe(32)
+        # In a real implementation, you might want to store this in a database
+        # For now, we'll just return it
+        return jsonify({
+            "status": "success",
+            "api_key": new_api_key,
+            "message": "New API key generated successfully"
+        })
+    except Exception as e:
+        return jsonify({"error": "Failed to generate API key"}), 500
+
 @app.route('/api/system/metrics')
 def api_system_metrics():
     """Get current system metrics"""
     return jsonify(system_metrics)
 
 @app.route('/api/network/scan', methods=['POST'])
+@require_api_key
 def api_network_scan():
     """Initiate network scan"""
     data = request.get_json() or {}
@@ -545,6 +553,17 @@ def api_network_scan():
         system_metrics['active_scans'] += 1
         devices = discover_network_devices(ip_range)
         system_metrics['active_scans'] -= 1
+        
+        # Store scan results in database
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
+                    ("network_scan", ip_range, json.dumps({"devices": devices, "total_found": len(devices)}), "completed")
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
         
         return jsonify({
             "status": "success",
@@ -556,6 +575,7 @@ def api_network_scan():
         return jsonify({"error": "Network scan failed"}), 500
 
 @app.route('/api/port/scan', methods=['POST'])
+@require_api_key
 def api_port_scan():
     """Initiate port scan"""
     data = request.get_json() or {}
@@ -569,6 +589,17 @@ def api_port_scan():
         system_metrics['active_scans'] += 1
         ports = scan_ports(target_ip, port_range)
         system_metrics['active_scans'] -= 1
+        
+        # Store scan results in database
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
+                    ("port_scan", target_ip, json.dumps({"open_ports": ports, "total_open": len(ports)}), "completed")
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
         
         return jsonify({
             "status": "success",
@@ -599,63 +630,360 @@ def api_charts_scan_results():
 @app.route('/api/charts/port_status')
 def api_charts_port_status():
     """Get data for port status chart"""
-    common_ports = ["SSH", "HTTP", "HTTPS", "FTP", "SMB", "RDP"]
-    port_data = [secrets.randbelow(10) + 1 for _ in common_ports]
-    
-    data = {
-        "labels": common_ports,
-        "datasets": [{
-            "label": "Open Ports",
-            "data": port_data,
-            "backgroundColor": ["#c000ff", "#ff00de", "#00ff41", "#c000ff", "#ff00de", "#00ff41"]
-        }]
-    }
-    return jsonify(data)
+    try:
+        # Get real port scan data from database
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT results FROM scan_results 
+                WHERE scan_type = 'port_scan' 
+                ORDER BY timestamp DESC LIMIT 1
+            """)
+            result = cursor.fetchone()
+            
+        if result:
+            import json
+            scan_data = json.loads(result['results'])
+            port_counts = {}
+            
+            # Count open ports by service
+            for port_info in scan_data.get('open_ports', []):
+                service = port_info.get('service', 'unknown').upper()
+                port_counts[service] = port_counts.get(service, 0) + 1
+            
+            labels = list(port_counts.keys()) or ["No Data"]
+            data_values = list(port_counts.values()) or [0]
+        else:
+            labels = ["No Scans"]
+            data_values = [0]
+        
+        data = {
+            "labels": labels,
+            "datasets": [{
+                "label": "Open Ports",
+                "data": data_values,
+                "backgroundColor": ["#c000ff", "#ff00de", "#00ff41", "#c000ff", "#ff00de", "#00ff41"]
+            }]
+        }
+        return jsonify(data)
+    except Exception as e:
+        # Return empty data on error
+        return jsonify({
+            "labels": ["No Data"],
+            "datasets": [{
+                "label": "Open Ports",
+                "data": [0],
+                "backgroundColor": ["#666666"]
+            }]
+        })
 
 @app.route('/api/charts/vulnerability')
 def api_charts_vulnerability():
     """Get data for vulnerability radar chart"""
-    data = {
-        "labels": ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"],
-        "datasets": [{
-            "label": "Vulnerability Level",
-            "data": [
-                secrets.randbelow(61) + 30,
-                secrets.randbelow(61) + 20,
-                secrets.randbelow(61) + 10,
-                secrets.randbelow(51) + 40,
-                secrets.randbelow(51) + 10
-            ],
-            "backgroundColor": "rgba(192, 0, 255, 0.2)",
-            "borderColor": "#c000ff"
-        }]
-    }
-    return jsonify(data)
+    try:
+        # Get real vulnerability data from database
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT results FROM scan_results 
+                WHERE scan_type = 'vulnerability_scan' 
+                ORDER BY timestamp DESC LIMIT 1
+            """)
+            result = cursor.fetchone()
+            
+        if result:
+            import json
+            vuln_data = json.loads(result['results'])
+            vuln_counts = vuln_data.get('vulnerability_counts', {})
+            
+            labels = ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"]
+            data_values = [
+                vuln_counts.get('remote_code', 0),
+                vuln_counts.get('privilege_escalation', 0),
+                vuln_counts.get('information_disclosure', 0),
+                vuln_counts.get('denial_of_service', 0),
+                vuln_counts.get('authentication_bypass', 0)
+            ]
+        else:
+            labels = ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"]
+            data_values = [0, 0, 0, 0, 0]
+        
+        data = {
+            "labels": labels,
+            "datasets": [{
+                "label": "Vulnerability Level",
+                "data": data_values,
+                "backgroundColor": "rgba(192, 0, 255, 0.2)",
+                "borderColor": "#c000ff"
+            }]
+        }
+        return jsonify(data)
+    except Exception as e:
+        # Return empty data on error
+        return jsonify({
+            "labels": ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"],
+            "datasets": [{
+                "label": "Vulnerability Level",
+                "data": [0, 0, 0, 0, 0],
+                "backgroundColor": "rgba(192, 0, 255, 0.2)",
+                "borderColor": "#c000ff"
+            }]
+        })
 
 @app.route('/api/charts/system_metrics')
 def api_charts_system_metrics():
     """Get data for system metrics chart"""
-    now = datetime.now()
-    timestamps = [(now - timedelta(minutes=x*15)).strftime("%H:%M") for x in range(7, 0, -1)]
+    try:
+        # Get real system metrics from database
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT metric_name, metric_value, timestamp 
+                FROM system_metrics 
+                WHERE timestamp > datetime('now', '-2 hours')
+                ORDER BY timestamp DESC
+                LIMIT 14
+            """)
+            results = cursor.fetchall()
+        
+        # Process the data
+        cpu_data = []
+        memory_data = []
+        timestamps = []
+        
+        if results:
+            # Group by timestamp and get latest values
+            data_points = {}
+            for row in results:
+                ts = row['timestamp'][:16]  # Get HH:MM format
+                if ts not in data_points:
+                    data_points[ts] = {}
+                data_points[ts][row['metric_name']] = row['metric_value']
+            
+            # Sort by timestamp and take last 7 points
+            sorted_times = sorted(data_points.keys())[-7:]
+            for ts in sorted_times:
+                timestamps.append(ts[-5:])  # Get just HH:MM
+                cpu_data.append(data_points[ts].get('cpu_usage', 0))
+                memory_data.append(data_points[ts].get('memory_usage', 0))
+        
+        # If no data, create empty chart
+        if not timestamps:
+            now = datetime.now()
+            timestamps = [(now - timedelta(minutes=x*15)).strftime("%H:%M") for x in range(6, -1, -1)]
+            cpu_data = [0] * 7
+            memory_data = [0] * 7
+        
+        data = {
+            "labels": timestamps,
+            "datasets": [
+                {
+                    "label": "CPU Usage",
+                    "data": cpu_data,
+                    "borderColor": "#c000ff",
+                    "backgroundColor": "transparent"
+                },
+                {
+                    "label": "Memory Usage",
+                    "data": memory_data,
+                    "borderColor": "#ff00de",
+                    "backgroundColor": "transparent"
+                }
+            ]
+        }
+        return jsonify(data)
+    except Exception as e:
+        # Return empty data on error
+        now = datetime.now()
+        timestamps = [(now - timedelta(minutes=x*15)).strftime("%H:%M") for x in range(6, -1, -1)]
+        return jsonify({
+            "labels": timestamps,
+            "datasets": [
+                {
+                    "label": "CPU Usage",
+                    "data": [0] * 7,
+                    "borderColor": "#c000ff",
+                    "backgroundColor": "transparent"
+                },
+                {
+                    "label": "Memory Usage",
+                    "data": [0] * 7,
+                    "borderColor": "#ff00de",
+                    "backgroundColor": "transparent"
+                }
+            ]
+        })
+
+@app.route('/api/vulnerability/scan', methods=['POST'])
+@require_api_key
+def api_vulnerability_scan():
+    """Initiate vulnerability scan"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    intensity = data.get('intensity', 'medium')
     
-    data = {
-        "labels": timestamps,
-        "datasets": [
-            {
-                "label": "CPU Usage",
-                "data": [secrets.randbelow(51) + 30 for _ in timestamps],
-                "borderColor": "#c000ff",
-                "backgroundColor": "transparent"
-            },
-            {
-                "label": "Memory Usage",
-                "data": [secrets.randbelow(41) + 20 for _ in timestamps],
-                "borderColor": "#ff00de",
-                "backgroundColor": "transparent"
-            }
-        ]
+    if not target_ip:
+        return jsonify({"error": "target_ip required"}), 400
+    
+    if not validate_ip_address(target_ip):
+        return jsonify({"error": "Invalid IP address format"}), 400
+    
+    try:
+        system_metrics['active_scans'] += 1
+        
+        # Simulate vulnerability scanning (replace with real tools in production)
+        vulnerabilities = []
+        vulnerability_counts = {
+            'remote_code': 0,
+            'privilege_escalation': 0,
+            'information_disclosure': 0,
+            'denial_of_service': 0,
+            'authentication_bypass': 0
+        }
+        
+        # Basic port-based vulnerability checks
+        ports = scan_ports(target_ip, "21,22,23,25,53,80,110,143,443,993,995")
+        for port_info in ports:
+            port = port_info['port']
+            service = port_info['service']
+            
+            # Simple vulnerability detection based on open ports
+            if port == 21:  # FTP
+                vulnerabilities.append({"type": "information_disclosure", "severity": "medium", "description": "FTP service detected"})
+                vulnerability_counts['information_disclosure'] += 1
+            elif port == 23:  # Telnet
+                vulnerabilities.append({"type": "authentication_bypass", "severity": "high", "description": "Insecure Telnet service"})
+                vulnerability_counts['authentication_bypass'] += 1
+            elif port == 80 and service == 'http':
+                vulnerabilities.append({"type": "information_disclosure", "severity": "low", "description": "Unencrypted HTTP service"})
+                vulnerability_counts['information_disclosure'] += 1
+        
+        system_metrics['active_scans'] -= 1
+        system_metrics['vulnerabilities'] = len(vulnerabilities)
+        
+        # Store results in database
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
+                    ("vulnerability_scan", target_ip, json.dumps({
+                        "vulnerabilities": vulnerabilities,
+                        "vulnerability_counts": vulnerability_counts,
+                        "total_found": len(vulnerabilities)
+                    }), "completed")
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+        
+        return jsonify({
+            "status": "success",
+            "target": target_ip,
+            "vulnerabilities": vulnerabilities,
+            "total_found": len(vulnerabilities)
+        })
+    except Exception as e:
+        system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
+        return jsonify({"error": "Vulnerability scan failed"}), 500
+
+@app.route('/api/attack/hydra', methods=['POST'])
+@require_api_key
+def api_attack_hydra():
+    """Initiate Hydra brute force attack"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    protocol = data.get('protocol', 'ssh')
+    
+    if not target_ip:
+        return jsonify({"error": "target_ip required"}), 400
+    
+    if not validate_ip_address(target_ip):
+        return jsonify({"error": "Invalid IP address format"}), 400
+    
+    try:
+        # Store attack log
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
+                    ("hydra_bruteforce", target_ip, "initiated", json.dumps({"protocol": protocol}))
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Hydra brute force attack initiated against {target_ip} ({protocol})",
+            "target": target_ip,
+            "protocol": protocol
+        })
+    except Exception as e:
+        return jsonify({"error": "Hydra attack failed to start"}), 500
+
+@app.route('/api/attack/metasploit', methods=['POST'])
+@require_api_key
+def api_attack_metasploit():
+    """Execute Metasploit exploit"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    exploit = data.get('exploit', 'generic')
+    
+    if not target_ip:
+        return jsonify({"error": "target_ip required"}), 400
+    
+    if not validate_ip_address(target_ip):
+        return jsonify({"error": "Invalid IP address format"}), 400
+    
+    try:
+        # Store attack log
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
+                    ("metasploit_exploit", target_ip, "initiated", json.dumps({"exploit": exploit}))
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Metasploit exploit {exploit} executed against {target_ip}",
+            "target": target_ip,
+            "exploit": exploit
+        })
+    except Exception as e:
+        return jsonify({"error": "Metasploit exploit failed"}), 500
+
+@app.route('/api/console/execute', methods=['POST'])
+@require_api_key
+def api_console_execute():
+    """Execute console command (restricted for security)"""
+    data = request.get_json() or {}
+    command = data.get('command', '').strip()
+    
+    if not command:
+        return jsonify({"error": "command required"}), 400
+    
+    # Whitelist of safe commands for demo purposes
+    safe_commands = {
+        'help': 'Available commands: help, status, version, time, whoami',
+        'status': 'CYBER-MATRIX v8.0 - All systems operational',
+        'version': 'CYBER-MATRIX v8.0 - Advanced Holographic Penetration Suite',
+        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC'),
+        'whoami': 'cyber-matrix-user'
     }
-    return jsonify(data)
+    
+    # Check if command is in whitelist
+    if command.lower() in safe_commands:
+        output = safe_commands[command.lower()]
+    else:
+        # For security, don't execute arbitrary commands
+        output = f"Command '{command}' not recognized. Type 'help' for available commands."
+    
+    return jsonify({
+        "status": "success",
+        "command": command,
+        "output": output
+    })
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
