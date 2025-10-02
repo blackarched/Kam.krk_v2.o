@@ -757,8 +757,8 @@
                     <span>SYSTEM ONLINE</span>
                 </div>
                 <div class="flex items-center">
-                    <span class="status-indicator status-online"></span>
-                    <span>API CONNECTED</span>
+                    <span id="api-status-indicator" class="status-indicator status-offline"></span>
+                    <span id="api-status-text">API DISCONNECTED</span>
                 </div>
                 <div class="flex items-center">
                     <span class="status-indicator status-warning"></span>
@@ -768,6 +768,29 @@
                     <span class="status-indicator status-online"></span>
                     <span>NEURAL NET ENGAGED</span>
                 </div>
+            </div>
+            
+            <!-- API Key Activation Panel -->
+            <div id="api-key-panel" class="mt-6 max-w-md mx-auto holographic-card compact-card">
+                <div class="corner"></div>
+                <div class="corner"></div>
+                <div class="corner"></div>
+                <div class="corner"></div>
+                <div class="holographic-beam"></div>
+                
+                <h3 class="text-lg font-bold mb-4 text-center" style="color: var(--primary-color);">API KEY ACTIVATION</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-sm mb-2" style="color: var(--primary-color);">ENTER API KEY</label>
+                    <input id="api-key-input" class="holographic-input" type="password" placeholder="Enter your API key...">
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button id="activate-api-btn" class="holographic-button flex-1">ACTIVATE</button>
+                    <button id="generate-api-btn" class="holographic-button flex-1">GENERATE</button>
+                </div>
+                
+                <div id="api-key-status" class="mt-4 text-center text-sm"></div>
             </div>
         </header>
         
@@ -1024,19 +1047,19 @@
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div class="data-display">
                         <div class="data-label">THREAT LEVEL</div>
-                        <div class="data-value">44.291</div>
+                        <div class="data-value" id="threat-level">44.291</div>
                     </div>
                     <div class="data-display">
                         <div class="data-label">VULNERABILITY INDEX</div>
-                        <div class="data-value">38.417</div>
+                        <div class="data-value" id="vuln-index">38.417</div>
                     </div>
                     <div class="data-display">
                         <div class="data-label">ENCRYPTION STRENGTH</div>
-                        <div class="data-value">12.002</div>
+                        <div class="data-value" id="encryption-strength">92.002</div>
                     </div>
                     <div class="data-display">
                         <div class="data-label">NETWORK HEALTH</div>
-                        <div class="data-value">20.556</div>
+                        <div class="data-value" id="network-health">75.556</div>
                     </div>
                 </div>
                 
@@ -1061,15 +1084,15 @@
                 <div class="grid grid-cols-3 gap-2 mb-4">
                     <div class="text-center">
                         <div class="data-label">PACKETS/SEC</div>
-                        <div class="text-lg" style="color: var(--accent-color);">8.785</div>
+                        <div class="text-lg" style="color: var(--accent-color);" id="packets-sec">8.785</div>
                     </div>
                     <div class="text-center">
                         <div class="data-label">THREATS</div>
-                        <div class="text-lg" style="color: var(--secondary-color);">4.174</div>
+                        <div class="text-lg" style="color: var(--secondary-color);" id="threats-detected">4</div>
                     </div>
                     <div class="text-center">
                         <div class="data-label">BANDWIDTH</div>
-                        <div class="text-lg" style="color: var(--primary-color);">8.510</div>
+                        <div class="text-lg" style="color: var(--primary-color);" id="bandwidth-usage">8.510</div>
                     </div>
                 </div>
                 
@@ -1098,7 +1121,7 @@
                             <div class="progress-bar flex-grow mr-2">
                                 <div class="progress-fill" style="width: 75%"></div>
                             </div>
-                            <span style="color: var(--accent-color);">5.415ms</span>
+                            <span style="color: var(--accent-color);" id="response-time">5.415ms</span>
                         </div>
                     </div>
                     <div>
@@ -1116,7 +1139,7 @@
                             <div class="progress-bar flex-grow mr-2">
                                 <div class="progress-fill" style="width: 62%"></div>
                             </div>
-                            <span style="color: var(--accent-color);">2.405Gbps</span>
+                            <span style="color: var(--accent-color);" id="throughput">2.405Gbps</span>
                         </div>
                     </div>
                     <div>
@@ -1125,7 +1148,7 @@
                             <div class="progress-bar flex-grow mr-2">
                                 <div class="progress-fill" style="width: 88%"></div>
                             </div>
-                            <span style="color: var(--accent-color);">2.175x</span>
+                            <span style="color: var(--accent-color);" id="encryption-factor">2.175x</span>
                         </div>
                     </div>
                 </div>
@@ -1251,6 +1274,7 @@
         let scanResultsChart, portStatusChart, vulnerabilityChart, attackProgressChart, systemMetricsChart;
         let financialChart, candlestickChart, performanceChart;
         let interfacesCache = [];
+        let currentApiKey = null;
         
         // API Helper Functions
         async function apiCall(endpoint, method = 'GET', data = null) {
@@ -1261,6 +1285,11 @@
                         'Content-Type': 'application/json',
                     }
                 };
+                
+                // Add API key to headers if available
+                if (currentApiKey) {
+                    options.headers['X-API-Key'] = currentApiKey;
+                }
                 
                 if (data) {
                     options.body = JSON.stringify(data);
@@ -1291,6 +1320,104 @@
             consoleOutput.scrollTop = consoleOutput.scrollHeight;
         }
         
+        // API Key Management Functions
+        async function generateApiKey() {
+            try {
+                const response = await fetch(API_BASE + '/auth/generate_key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    currentApiKey = result.api_key;
+                    document.getElementById('api-key-input').value = result.api_key;
+                    updateApiStatus(true);
+                    addConsoleMessage('New API key generated successfully', 'text-green-400');
+                    document.getElementById('api-key-status').innerHTML = 
+                        '<span class="text-green-400">✓ API key generated and activated</span>';
+                } else {
+                    throw new Error(result.error || 'Failed to generate API key');
+                }
+            } catch (error) {
+                addConsoleMessage(`Failed to generate API key: ${error.message}`, 'text-red-400');
+                document.getElementById('api-key-status').innerHTML = 
+                    '<span class="text-red-400">✗ Failed to generate API key</span>';
+            }
+        }
+        
+        async function activateApiKey() {
+            const apiKeyInput = document.getElementById('api-key-input');
+            const apiKey = apiKeyInput.value.trim();
+            
+            if (!apiKey) {
+                document.getElementById('api-key-status').innerHTML = 
+                    '<span class="text-yellow-400">⚠ Please enter an API key</span>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_BASE + '/auth/validate_key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey })
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.valid) {
+                    currentApiKey = apiKey;
+                    updateApiStatus(true);
+                    addConsoleMessage('API key activated successfully', 'text-green-400');
+                    document.getElementById('api-key-status').innerHTML = 
+                        '<span class="text-green-400">✓ API key activated</span>';
+                    
+                    // Hide the API key panel after successful activation
+                    setTimeout(() => {
+                        document.getElementById('api-key-panel').style.display = 'none';
+                    }, 2000);
+                } else {
+                    throw new Error('Invalid API key');
+                }
+            } catch (error) {
+                addConsoleMessage(`API key activation failed: ${error.message}`, 'text-red-400');
+                document.getElementById('api-key-status').innerHTML = 
+                    '<span class="text-red-400">✗ Invalid API key</span>';
+                updateApiStatus(false);
+            }
+        }
+        
+        function updateApiStatus(isConnected) {
+            const indicator = document.getElementById('api-status-indicator');
+            const text = document.getElementById('api-status-text');
+            
+            if (isConnected) {
+                indicator.className = 'status-indicator status-online';
+                text.textContent = 'API CONNECTED';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'API DISCONNECTED';
+            }
+        }
+        
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(API_BASE + '/auth/status', {
+                    headers: currentApiKey ? { 'X-API-Key': currentApiKey } : {}
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    updateApiStatus(result.authenticated);
+                    if (!result.authenticated) {
+                        document.getElementById('api-key-panel').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                updateApiStatus(false);
+                document.getElementById('api-key-panel').style.display = 'block';
+            }
+        }
+        
         // Update system metrics display
         async function updateSystemMetrics() {
             try {
@@ -1313,14 +1440,21 @@
                     statusElements[2].textContent = `VULNERABLE: ${metrics.vulnerabilities}`;
                 }
                 
-                // Update data displays
-                const dataValues = document.querySelectorAll('.data-value');
-                if (dataValues.length >= 4) {
-                    dataValues[0].textContent = (Math.random() * 50 + 20).toFixed(3);
-                    dataValues[1].textContent = (Math.random() * 40 + 15).toFixed(3);
-                    dataValues[2].textContent = (Math.random() * 20 + 5).toFixed(3);
-                    dataValues[3].textContent = (Math.random() * 30 + 10).toFixed(3);
-                }
+                // Update data displays with real metrics
+                document.getElementById('threat-level').textContent = metrics.threats_detected.toFixed(3);
+                document.getElementById('vuln-index').textContent = metrics.vulnerabilities.toFixed(3);
+                document.getElementById('encryption-strength').textContent = metrics.encryption_level.toFixed(3);
+                document.getElementById('network-health').textContent = (100 - metrics.network_traffic).toFixed(3);
+                
+                // Update network activity metrics
+                document.getElementById('packets-sec').textContent = (metrics.network_traffic / 10).toFixed(3);
+                document.getElementById('threats-detected').textContent = metrics.threats_detected;
+                document.getElementById('bandwidth-usage').textContent = (metrics.network_traffic / 10).toFixed(3);
+                
+                // Update performance metrics
+                document.getElementById('response-time').textContent = (5 + Math.random() * 2).toFixed(3) + 'ms';
+                document.getElementById('throughput').textContent = (metrics.network_traffic / 40).toFixed(3) + 'Gbps';
+                document.getElementById('encryption-factor').textContent = (metrics.encryption_level / 50).toFixed(3) + 'x';
                 
             } catch (error) {
                 console.error('Failed to update system metrics:', error);
@@ -1680,19 +1814,21 @@
                 }
             });
 
-            // Financial Chart
+            // Financial Chart - Candlestick Style
             const financialCtx = document.getElementById('financialChart').getContext('2d');
-            new Chart(financialCtx, {
-                type: 'line',
+            financialChart = new Chart(financialCtx, {
+                type: 'bar',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    labels: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
                     datasets: [{
                         label: 'Security Index',
-                        data: [44.291, 38.417, 12.002, 20.556, 44.870, 38.500, 42.100],
-                        borderColor: '#00ff41',
-                        backgroundColor: 'rgba(0, 255, 65, 0.1)',
-                        tension: 0.4,
-                        fill: true
+                        data: [44.291, 38.417, 52.002, 45.556, 41.870, 48.500, 42.100],
+                        backgroundColor: [
+                            '#00ff41', '#ff00de', '#00ff41', '#ff00de', 
+                            '#00ff41', '#00ff41', '#ff00de'
+                        ],
+                        borderColor: '#000',
+                        borderWidth: 1
                     }]
                 },
                 options: {
@@ -1735,18 +1871,18 @@
                 }
             });
 
-            // Candlestick Chart
+            // Candlestick Chart - Network Activity
             const candlestickCtx = document.getElementById('candlestickChart').getContext('2d');
-            new Chart(candlestickCtx, {
+            candlestickChart = new Chart(candlestickCtx, {
                 type: 'bar',
                 data: {
                     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                     datasets: [{
                         label: 'Network Activity',
-                        data: [8.785, 4.174, 8.510, 5.415, 2.405, 2.175, 4.479],
+                        data: [8.785, 4.174, 8.510, 5.415, 2.405, 6.175, 4.479],
                         backgroundColor: [
                             '#00ff41', '#ff00de', '#00ff41', '#c000ff', 
-                            '#ff00de', '#ff00de', '#00ff41'
+                            '#ff00de', '#00ff41', '#ff00de'
                         ],
                         borderColor: '#000',
                         borderWidth: 1
@@ -1787,9 +1923,9 @@
                 }
             });
 
-            // Performance Chart
+            // Performance Chart - Financial Style Line Chart
             const performanceCtx = document.getElementById('performanceChart').getContext('2d');
-            new Chart(performanceCtx, {
+            performanceChart = new Chart(performanceCtx, {
                 type: 'line',
                 data: {
                     labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '00:00'],
@@ -1798,15 +1934,25 @@
                             label: 'Response Time',
                             data: [5.415, 4.183, 4.178, 6.861, 5.200, 4.500, 5.100],
                             borderColor: '#c000ff',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(192, 0, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#c000ff',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4
                         },
                         {
                             label: 'Throughput',
                             data: [2.405, 2.175, 4.479, 5.990, 6.200, 5.500, 4.800],
                             borderColor: '#00ff41',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(0, 255, 65, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#00ff41',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4
                         }
                     ]
                 },
@@ -1944,6 +2090,10 @@
             initSatelliteMap();
             loadInterfaces();
             setupGenericButtonHandlers();
+            setupApiKeyHandlers();
+            
+            // Check API status on load
+            checkApiStatus();
             
             // Start periodic updates
             updateSystemMetrics();
@@ -2175,6 +2325,37 @@
             
             // Update other charts as needed
             updateSystemMetrics();
+        }
+        
+        // Setup API key button handlers
+        function setupApiKeyHandlers() {
+            // Activate API key button
+            const activateBtn = document.getElementById('activate-api-btn');
+            if (activateBtn) {
+                activateBtn.addEventListener('click', function() {
+                    addVisualFeedback(this);
+                    activateApiKey();
+                });
+            }
+            
+            // Generate API key button
+            const generateBtn = document.getElementById('generate-api-btn');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', function() {
+                    addVisualFeedback(this);
+                    generateApiKey();
+                });
+            }
+            
+            // Allow Enter key to activate API key
+            const apiKeyInput = document.getElementById('api-key-input');
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        activateApiKey();
+                    }
+                });
+            }
         }
         
         // Generic button handler for remaining buttons
