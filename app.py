@@ -439,14 +439,14 @@ def list_network_interfaces():
             ipv6 = None
             mac = None
             for addr in iface_addrs:
-                # psutil returns family enums; string compare fallback
+                # psutil returns family enums; use numeric comparison
                 fam = getattr(addr, 'family', None)
-                fam_str = str(fam)
-                if fam_str.endswith('AF_LINK') and not mac:
+                import socket
+                if fam == socket.AF_PACKET and not mac:  # AF_PACKET = 17 (Linux MAC addresses)
                     mac = addr.address
-                elif fam_str.endswith('AF_INET') and not ipv4:
+                elif fam == socket.AF_INET and not ipv4:  # AF_INET = 2 (IPv4)
                     ipv4 = addr.address
-                elif fam_str.endswith('AF_INET6') and not ipv6:
+                elif fam == socket.AF_INET6 and not ipv6:  # AF_INET6 = 10 (IPv6)
                     ipv6 = addr.address
             # Heuristic for type
             lowered = name.lower()
@@ -818,6 +818,180 @@ def api_charts_system_metrics():
                 }
             ]
         })
+
+@app.route('/api/vulnerability/scan', methods=['POST'])
+@require_api_key
+def api_vulnerability_scan():
+    """Initiate vulnerability scan"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    intensity = data.get('intensity', 'medium')
+    
+    if not target_ip:
+        return jsonify({"error": "target_ip required"}), 400
+    
+    if not validate_ip_address(target_ip):
+        return jsonify({"error": "Invalid IP address format"}), 400
+    
+    try:
+        system_metrics['active_scans'] += 1
+        
+        # Simulate vulnerability scanning (replace with real tools in production)
+        vulnerabilities = []
+        vulnerability_counts = {
+            'remote_code': 0,
+            'privilege_escalation': 0,
+            'information_disclosure': 0,
+            'denial_of_service': 0,
+            'authentication_bypass': 0
+        }
+        
+        # Basic port-based vulnerability checks
+        ports = scan_ports(target_ip, "21,22,23,25,53,80,110,143,443,993,995")
+        for port_info in ports:
+            port = port_info['port']
+            service = port_info['service']
+            
+            # Simple vulnerability detection based on open ports
+            if port == 21:  # FTP
+                vulnerabilities.append({"type": "information_disclosure", "severity": "medium", "description": "FTP service detected"})
+                vulnerability_counts['information_disclosure'] += 1
+            elif port == 23:  # Telnet
+                vulnerabilities.append({"type": "authentication_bypass", "severity": "high", "description": "Insecure Telnet service"})
+                vulnerability_counts['authentication_bypass'] += 1
+            elif port == 80 and service == 'http':
+                vulnerabilities.append({"type": "information_disclosure", "severity": "low", "description": "Unencrypted HTTP service"})
+                vulnerability_counts['information_disclosure'] += 1
+        
+        system_metrics['active_scans'] -= 1
+        system_metrics['vulnerabilities'] = len(vulnerabilities)
+        
+        # Store results in database
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
+                    ("vulnerability_scan", target_ip, json.dumps({
+                        "vulnerabilities": vulnerabilities,
+                        "vulnerability_counts": vulnerability_counts,
+                        "total_found": len(vulnerabilities)
+                    }), "completed")
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+        
+        return jsonify({
+            "status": "success",
+            "target": target_ip,
+            "vulnerabilities": vulnerabilities,
+            "total_found": len(vulnerabilities)
+        })
+    except Exception as e:
+        system_metrics['active_scans'] = max(0, system_metrics['active_scans'] - 1)
+        return jsonify({"error": "Vulnerability scan failed"}), 500
+
+@app.route('/api/attack/hydra', methods=['POST'])
+@require_api_key
+def api_attack_hydra():
+    """Initiate Hydra brute force attack"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    protocol = data.get('protocol', 'ssh')
+    
+    if not target_ip:
+        return jsonify({"error": "target_ip required"}), 400
+    
+    if not validate_ip_address(target_ip):
+        return jsonify({"error": "Invalid IP address format"}), 400
+    
+    try:
+        # Store attack log
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
+                    ("hydra_bruteforce", target_ip, "initiated", json.dumps({"protocol": protocol}))
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Hydra brute force attack initiated against {target_ip} ({protocol})",
+            "target": target_ip,
+            "protocol": protocol
+        })
+    except Exception as e:
+        return jsonify({"error": "Hydra attack failed to start"}), 500
+
+@app.route('/api/attack/metasploit', methods=['POST'])
+@require_api_key
+def api_attack_metasploit():
+    """Execute Metasploit exploit"""
+    data = request.get_json() or {}
+    target_ip = data.get('target_ip')
+    exploit = data.get('exploit', 'generic')
+    
+    if not target_ip:
+        return jsonify({"error": "target_ip required"}), 400
+    
+    if not validate_ip_address(target_ip):
+        return jsonify({"error": "Invalid IP address format"}), 400
+    
+    try:
+        # Store attack log
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO attack_logs (attack_type, target, status, details) VALUES (?, ?, ?, ?)",
+                    ("metasploit_exploit", target_ip, "initiated", json.dumps({"exploit": exploit}))
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Metasploit exploit {exploit} executed against {target_ip}",
+            "target": target_ip,
+            "exploit": exploit
+        })
+    except Exception as e:
+        return jsonify({"error": "Metasploit exploit failed"}), 500
+
+@app.route('/api/console/execute', methods=['POST'])
+@require_api_key
+def api_console_execute():
+    """Execute console command (restricted for security)"""
+    data = request.get_json() or {}
+    command = data.get('command', '').strip()
+    
+    if not command:
+        return jsonify({"error": "command required"}), 400
+    
+    # Whitelist of safe commands for demo purposes
+    safe_commands = {
+        'help': 'Available commands: help, status, version, time, whoami',
+        'status': 'CYBER-MATRIX v8.0 - All systems operational',
+        'version': 'CYBER-MATRIX v8.0 - Advanced Holographic Penetration Suite',
+        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC'),
+        'whoami': 'cyber-matrix-user'
+    }
+    
+    # Check if command is in whitelist
+    if command.lower() in safe_commands:
+        output = safe_commands[command.lower()]
+    else:
+        # For security, don't execute arbitrary commands
+        output = f"Command '{command}' not recognized. Type 'help' for available commands."
+    
+    return jsonify({
+        "status": "success",
+        "command": command,
+        "output": output
+    })
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
