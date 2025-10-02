@@ -530,12 +530,28 @@ def index():
     except FileNotFoundError:
         return "Dashboard file not found", 404
 
+@app.route('/api/auth/generate-key', methods=['POST'])
+def api_generate_key():
+    """Generate a new API key"""
+    try:
+        new_api_key = secrets.token_urlsafe(32)
+        # In a real implementation, you might want to store this in a database
+        # For now, we'll just return it
+        return jsonify({
+            "status": "success",
+            "api_key": new_api_key,
+            "message": "New API key generated successfully"
+        })
+    except Exception as e:
+        return jsonify({"error": "Failed to generate API key"}), 500
+
 @app.route('/api/system/metrics')
 def api_system_metrics():
     """Get current system metrics"""
     return jsonify(system_metrics)
 
 @app.route('/api/network/scan', methods=['POST'])
+@require_api_key
 def api_network_scan():
     """Initiate network scan"""
     data = request.get_json() or {}
@@ -545,6 +561,17 @@ def api_network_scan():
         system_metrics['active_scans'] += 1
         devices = discover_network_devices(ip_range)
         system_metrics['active_scans'] -= 1
+        
+        # Store scan results in database
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
+                    ("network_scan", ip_range, json.dumps({"devices": devices, "total_found": len(devices)}), "completed")
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
         
         return jsonify({
             "status": "success",
@@ -556,6 +583,7 @@ def api_network_scan():
         return jsonify({"error": "Network scan failed"}), 500
 
 @app.route('/api/port/scan', methods=['POST'])
+@require_api_key
 def api_port_scan():
     """Initiate port scan"""
     data = request.get_json() or {}
@@ -569,6 +597,17 @@ def api_port_scan():
         system_metrics['active_scans'] += 1
         ports = scan_ports(target_ip, port_range)
         system_metrics['active_scans'] -= 1
+        
+        # Store scan results in database
+        try:
+            with get_db_connection() as conn:
+                conn.execute(
+                    "INSERT INTO scan_results (scan_type, target, results, status) VALUES (?, ?, ?, ?)",
+                    ("port_scan", target_ip, json.dumps({"open_ports": ports, "total_open": len(ports)}), "completed")
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Database error: {str(e)}")
         
         return jsonify({
             "status": "success",
@@ -599,63 +638,186 @@ def api_charts_scan_results():
 @app.route('/api/charts/port_status')
 def api_charts_port_status():
     """Get data for port status chart"""
-    common_ports = ["SSH", "HTTP", "HTTPS", "FTP", "SMB", "RDP"]
-    port_data = [secrets.randbelow(10) + 1 for _ in common_ports]
-    
-    data = {
-        "labels": common_ports,
-        "datasets": [{
-            "label": "Open Ports",
-            "data": port_data,
-            "backgroundColor": ["#c000ff", "#ff00de", "#00ff41", "#c000ff", "#ff00de", "#00ff41"]
-        }]
-    }
-    return jsonify(data)
+    try:
+        # Get real port scan data from database
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT results FROM scan_results 
+                WHERE scan_type = 'port_scan' 
+                ORDER BY timestamp DESC LIMIT 1
+            """)
+            result = cursor.fetchone()
+            
+        if result:
+            import json
+            scan_data = json.loads(result['results'])
+            port_counts = {}
+            
+            # Count open ports by service
+            for port_info in scan_data.get('open_ports', []):
+                service = port_info.get('service', 'unknown').upper()
+                port_counts[service] = port_counts.get(service, 0) + 1
+            
+            labels = list(port_counts.keys()) or ["No Data"]
+            data_values = list(port_counts.values()) or [0]
+        else:
+            labels = ["No Scans"]
+            data_values = [0]
+        
+        data = {
+            "labels": labels,
+            "datasets": [{
+                "label": "Open Ports",
+                "data": data_values,
+                "backgroundColor": ["#c000ff", "#ff00de", "#00ff41", "#c000ff", "#ff00de", "#00ff41"]
+            }]
+        }
+        return jsonify(data)
+    except Exception as e:
+        # Return empty data on error
+        return jsonify({
+            "labels": ["No Data"],
+            "datasets": [{
+                "label": "Open Ports",
+                "data": [0],
+                "backgroundColor": ["#666666"]
+            }]
+        })
 
 @app.route('/api/charts/vulnerability')
 def api_charts_vulnerability():
     """Get data for vulnerability radar chart"""
-    data = {
-        "labels": ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"],
-        "datasets": [{
-            "label": "Vulnerability Level",
-            "data": [
-                secrets.randbelow(61) + 30,
-                secrets.randbelow(61) + 20,
-                secrets.randbelow(61) + 10,
-                secrets.randbelow(51) + 40,
-                secrets.randbelow(51) + 10
-            ],
-            "backgroundColor": "rgba(192, 0, 255, 0.2)",
-            "borderColor": "#c000ff"
-        }]
-    }
-    return jsonify(data)
+    try:
+        # Get real vulnerability data from database
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT results FROM scan_results 
+                WHERE scan_type = 'vulnerability_scan' 
+                ORDER BY timestamp DESC LIMIT 1
+            """)
+            result = cursor.fetchone()
+            
+        if result:
+            import json
+            vuln_data = json.loads(result['results'])
+            vuln_counts = vuln_data.get('vulnerability_counts', {})
+            
+            labels = ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"]
+            data_values = [
+                vuln_counts.get('remote_code', 0),
+                vuln_counts.get('privilege_escalation', 0),
+                vuln_counts.get('information_disclosure', 0),
+                vuln_counts.get('denial_of_service', 0),
+                vuln_counts.get('authentication_bypass', 0)
+            ]
+        else:
+            labels = ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"]
+            data_values = [0, 0, 0, 0, 0]
+        
+        data = {
+            "labels": labels,
+            "datasets": [{
+                "label": "Vulnerability Level",
+                "data": data_values,
+                "backgroundColor": "rgba(192, 0, 255, 0.2)",
+                "borderColor": "#c000ff"
+            }]
+        }
+        return jsonify(data)
+    except Exception as e:
+        # Return empty data on error
+        return jsonify({
+            "labels": ["Remote Code", "Privilege Escalation", "Information Disclosure", "Denial of Service", "Authentication Bypass"],
+            "datasets": [{
+                "label": "Vulnerability Level",
+                "data": [0, 0, 0, 0, 0],
+                "backgroundColor": "rgba(192, 0, 255, 0.2)",
+                "borderColor": "#c000ff"
+            }]
+        })
 
 @app.route('/api/charts/system_metrics')
 def api_charts_system_metrics():
     """Get data for system metrics chart"""
-    now = datetime.now()
-    timestamps = [(now - timedelta(minutes=x*15)).strftime("%H:%M") for x in range(7, 0, -1)]
-    
-    data = {
-        "labels": timestamps,
-        "datasets": [
-            {
-                "label": "CPU Usage",
-                "data": [secrets.randbelow(51) + 30 for _ in timestamps],
-                "borderColor": "#c000ff",
-                "backgroundColor": "transparent"
-            },
-            {
-                "label": "Memory Usage",
-                "data": [secrets.randbelow(41) + 20 for _ in timestamps],
-                "borderColor": "#ff00de",
-                "backgroundColor": "transparent"
-            }
-        ]
-    }
-    return jsonify(data)
+    try:
+        # Get real system metrics from database
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT metric_name, metric_value, timestamp 
+                FROM system_metrics 
+                WHERE timestamp > datetime('now', '-2 hours')
+                ORDER BY timestamp DESC
+                LIMIT 14
+            """)
+            results = cursor.fetchall()
+        
+        # Process the data
+        cpu_data = []
+        memory_data = []
+        timestamps = []
+        
+        if results:
+            # Group by timestamp and get latest values
+            data_points = {}
+            for row in results:
+                ts = row['timestamp'][:16]  # Get HH:MM format
+                if ts not in data_points:
+                    data_points[ts] = {}
+                data_points[ts][row['metric_name']] = row['metric_value']
+            
+            # Sort by timestamp and take last 7 points
+            sorted_times = sorted(data_points.keys())[-7:]
+            for ts in sorted_times:
+                timestamps.append(ts[-5:])  # Get just HH:MM
+                cpu_data.append(data_points[ts].get('cpu_usage', 0))
+                memory_data.append(data_points[ts].get('memory_usage', 0))
+        
+        # If no data, create empty chart
+        if not timestamps:
+            now = datetime.now()
+            timestamps = [(now - timedelta(minutes=x*15)).strftime("%H:%M") for x in range(6, -1, -1)]
+            cpu_data = [0] * 7
+            memory_data = [0] * 7
+        
+        data = {
+            "labels": timestamps,
+            "datasets": [
+                {
+                    "label": "CPU Usage",
+                    "data": cpu_data,
+                    "borderColor": "#c000ff",
+                    "backgroundColor": "transparent"
+                },
+                {
+                    "label": "Memory Usage",
+                    "data": memory_data,
+                    "borderColor": "#ff00de",
+                    "backgroundColor": "transparent"
+                }
+            ]
+        }
+        return jsonify(data)
+    except Exception as e:
+        # Return empty data on error
+        now = datetime.now()
+        timestamps = [(now - timedelta(minutes=x*15)).strftime("%H:%M") for x in range(6, -1, -1)]
+        return jsonify({
+            "labels": timestamps,
+            "datasets": [
+                {
+                    "label": "CPU Usage",
+                    "data": [0] * 7,
+                    "borderColor": "#c000ff",
+                    "backgroundColor": "transparent"
+                },
+                {
+                    "label": "Memory Usage",
+                    "data": [0] * 7,
+                    "borderColor": "#ff00de",
+                    "backgroundColor": "transparent"
+                }
+            ]
+        })
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""

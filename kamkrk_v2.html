@@ -757,8 +757,8 @@
                     <span>SYSTEM ONLINE</span>
                 </div>
                 <div class="flex items-center">
-                    <span class="status-indicator status-online"></span>
-                    <span>API CONNECTED</span>
+                    <span id="api-status-indicator" class="status-indicator status-offline"></span>
+                    <span id="api-status-text">API DISCONNECTED</span>
                 </div>
                 <div class="flex items-center">
                     <span class="status-indicator status-warning"></span>
@@ -767,6 +767,19 @@
                 <div class="flex items-center">
                     <span class="status-indicator status-online"></span>
                     <span>NEURAL NET ENGAGED</span>
+                </div>
+            </div>
+            
+            <!-- API Key Activation Panel -->
+            <div class="mt-6 flex justify-center">
+                <div class="holographic-card compact-card" style="max-width: 500px;">
+                    <h3 class="text-lg font-bold mb-4" style="color: var(--primary-color);">API KEY ACTIVATION</h3>
+                    <div class="flex gap-2">
+                        <input id="api-key-input" type="password" class="holographic-input flex-grow" placeholder="Enter API Key...">
+                        <button id="activate-api-btn" class="holographic-button">ACTIVATE</button>
+                        <button id="generate-api-btn" class="holographic-button">GENERATE</button>
+                    </div>
+                    <div id="api-key-status" class="mt-2 text-sm"></div>
                 </div>
             </div>
         </header>
@@ -1246,6 +1259,7 @@
         
         // API Configuration
         const API_BASE = '/api';
+        let currentApiKey = null;
         
         // Global chart instances
         let scanResultsChart, portStatusChart, vulnerabilityChart, attackProgressChart, systemMetricsChart;
@@ -1262,6 +1276,11 @@
                     }
                 };
                 
+                // Add API key to headers if available
+                if (currentApiKey) {
+                    options.headers['X-API-Key'] = currentApiKey;
+                }
+                
                 if (data) {
                     options.body = JSON.stringify(data);
                 }
@@ -1270,6 +1289,10 @@
                 const result = await response.json();
                 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        updateApiStatus(false);
+                        throw new Error('Invalid or missing API key');
+                    }
                     throw new Error(result.error || 'API request failed');
                 }
                 
@@ -1278,6 +1301,82 @@
                 console.error('API Error:', error);
                 addConsoleMessage(`API Error: ${error.message}`, 'text-red-400');
                 throw error;
+            }
+        }
+        
+        // API Key Management
+        function updateApiStatus(isConnected) {
+            const indicator = document.getElementById('api-status-indicator');
+            const text = document.getElementById('api-status-text');
+            
+            if (isConnected) {
+                indicator.className = 'status-indicator status-online';
+                text.textContent = 'API CONNECTED';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'API DISCONNECTED';
+            }
+        }
+        
+        async function activateApiKey() {
+            const apiKeyInput = document.getElementById('api-key-input');
+            const statusDiv = document.getElementById('api-key-status');
+            const apiKey = apiKeyInput.value.trim();
+            
+            if (!apiKey) {
+                statusDiv.innerHTML = '<span class="text-red-400">Please enter an API key</span>';
+                return;
+            }
+            
+            try {
+                currentApiKey = apiKey;
+                // Test the API key by making a simple request
+                await apiCall('/system/metrics');
+                
+                statusDiv.innerHTML = '<span class="text-green-400">✓ API Key activated successfully</span>';
+                updateApiStatus(true);
+                addConsoleMessage('API key activated successfully', 'text-green-400');
+                
+                // Store API key in session storage
+                sessionStorage.setItem('cyber_matrix_api_key', apiKey);
+                
+                // Hide the API key input after successful activation
+                apiKeyInput.type = 'password';
+                apiKeyInput.value = '••••••••••••••••';
+                
+            } catch (error) {
+                currentApiKey = null;
+                statusDiv.innerHTML = '<span class="text-red-400">✗ Invalid API key</span>';
+                updateApiStatus(false);
+                addConsoleMessage('API key activation failed', 'text-red-400');
+            }
+        }
+        
+        async function generateApiKey() {
+            const statusDiv = document.getElementById('api-key-status');
+            const apiKeyInput = document.getElementById('api-key-input');
+            
+            try {
+                const response = await fetch('/api/auth/generate-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    apiKeyInput.value = result.api_key;
+                    apiKeyInput.type = 'text';
+                    statusDiv.innerHTML = '<span class="text-blue-400">New API key generated. Click ACTIVATE to use it.</span>';
+                    addConsoleMessage('New API key generated', 'text-blue-400');
+                } else {
+                    throw new Error(result.error || 'Failed to generate API key');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<span class="text-red-400">✗ Failed to generate API key</span>';
+                addConsoleMessage('API key generation failed', 'text-red-400');
             }
         }
         
@@ -1617,62 +1716,120 @@
                 }
             });
             
-            // System Metrics Chart
+            // Professional System Metrics Chart
             const systemMetricsCtx = document.getElementById('systemMetricsChart').getContext('2d');
-            new Chart(systemMetricsCtx, {
+            systemMetricsChart = new Chart(systemMetricsCtx, {
                 type: 'line',
                 data: {
                     labels: ['10:00', '10:15', '10:30', '10:45', '11:00', '11:15', '11:30'],
                     datasets: [
                         {
-                            label: 'CPU Usage',
+                            label: 'CPU Usage (%)',
                             data: [45, 52, 38, 65, 72, 58, 62],
                             borderColor: '#c000ff',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(192, 0, 255, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: '#c000ff',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         },
                         {
-                            label: 'Memory Usage',
+                            label: 'Memory Usage (%)',
                             data: [38, 42, 35, 48, 52, 45, 50],
                             borderColor: '#ff00de',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(255, 0, 222, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: '#ff00de',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     scales: {
                         y: {
+                            beginAtZero: true,
+                            max: 100,
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.1)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value + '%';
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         },
                         x: {
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.05)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         }
                     },
                     plugins: {
                         legend: {
+                            position: 'top',
+                            align: 'end',
                             labels: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#00ff41',
+                            bodyColor: '#ffffff',
+                            borderColor: '#00ff41',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    const label = context.dataset.label;
+                                    const value = context.parsed.y.toFixed(1);
+                                    return label + ': ' + value + '%';
                                 }
                             }
                         }
@@ -1680,114 +1837,194 @@
                 }
             });
 
-            // Financial Chart
+            // Financial Chart - Professional Trading Style
             const financialCtx = document.getElementById('financialChart').getContext('2d');
             new Chart(financialCtx, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    labels: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
                     datasets: [{
                         label: 'Security Index',
                         data: [44.291, 38.417, 12.002, 20.556, 44.870, 38.500, 42.100],
                         borderColor: '#00ff41',
-                        backgroundColor: 'rgba(0, 255, 65, 0.1)',
-                        tension: 0.4,
-                        fill: true
+                        backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true,
+                        pointBackgroundColor: '#00ff41',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Candlestick Chart
-            const candlestickCtx = document.getElementById('candlestickChart').getContext('2d');
-            new Chart(candlestickCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'Network Activity',
-                        data: [8.785, 4.174, 8.510, 5.415, 2.405, 2.175, 4.479],
-                        backgroundColor: [
-                            '#00ff41', '#ff00de', '#00ff41', '#c000ff', 
-                            '#ff00de', '#ff00de', '#00ff41'
-                        ],
-                        borderColor: '#000',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
                     scales: {
                         y: {
+                            beginAtZero: false,
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.1)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(3);
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         },
                         x: {
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.05)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         }
                     },
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#00ff41',
+                            bodyColor: '#ffffff',
+                            borderColor: '#00ff41',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            displayColors: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    return 'Index: ' + context.parsed.y.toFixed(3);
+                                }
+                            }
                         }
                     }
                 }
             });
 
-            // Performance Chart
+            // Professional OHLC-Style Chart
+            const candlestickCtx = document.getElementById('candlestickChart').getContext('2d');
+            new Chart(candlestickCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['09:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30'],
+                    datasets: [{
+                        label: 'Network Activity',
+                        data: [8.785, 4.174, 8.510, 5.415, 2.405, 2.175, 4.479],
+                        backgroundColor: function(context) {
+                            const value = context.parsed.y;
+                            const prevValue = context.dataIndex > 0 ? 
+                                context.dataset.data[context.dataIndex - 1] : value;
+                            return value >= prevValue ? '#00ff41' : '#ff00de';
+                        },
+                        borderColor: function(context) {
+                            const value = context.parsed.y;
+                            const prevValue = context.dataIndex > 0 ? 
+                                context.dataset.data[context.dataIndex - 1] : value;
+                            return value >= prevValue ? '#00cc33' : '#cc0099';
+                        },
+                        borderWidth: 1,
+                        borderRadius: 2,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(192, 0, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#c9d1d9',
+                                font: {
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(2) + 'K';
+                                }
+                            },
+                            border: {
+                                display: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(192, 0, 255, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#c9d1d9',
+                                font: {
+                                    family: 'Fira Code',
+                                    size: 10
+                                }
+                            },
+                            border: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#00ff41',
+                            bodyColor: '#ffffff',
+                            borderColor: '#00ff41',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            displayColors: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    return 'Activity: ' + context.parsed.y.toFixed(3) + 'K packets/sec';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Professional Multi-Line Performance Chart
             const performanceCtx = document.getElementById('performanceChart').getContext('2d');
             new Chart(performanceCtx, {
                 type: 'line',
@@ -1795,54 +2032,111 @@
                     labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '00:00'],
                     datasets: [
                         {
-                            label: 'Response Time',
+                            label: 'Response Time (ms)',
                             data: [5.415, 4.183, 4.178, 6.861, 5.200, 4.500, 5.100],
                             borderColor: '#c000ff',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(192, 0, 255, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            fill: false,
+                            pointBackgroundColor: '#c000ff',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         },
                         {
-                            label: 'Throughput',
+                            label: 'Throughput (Gbps)',
                             data: [2.405, 2.175, 4.479, 5.990, 6.200, 5.500, 4.800],
                             borderColor: '#00ff41',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            fill: false,
+                            pointBackgroundColor: '#00ff41',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     scales: {
                         y: {
+                            beginAtZero: false,
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.1)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(2);
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         },
                         x: {
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.05)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         }
                     },
                     plugins: {
                         legend: {
+                            position: 'top',
+                            align: 'end',
                             labels: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#00ff41',
+                            bodyColor: '#ffffff',
+                            borderColor: '#00ff41',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    const label = context.dataset.label;
+                                    const value = context.parsed.y.toFixed(3);
+                                    return label + ': ' + value;
                                 }
                             }
                         }
@@ -1944,6 +2238,17 @@
             initSatelliteMap();
             loadInterfaces();
             setupGenericButtonHandlers();
+            setupApiKeyHandlers();
+            
+            // Try to restore API key from session storage
+            const savedApiKey = sessionStorage.getItem('cyber_matrix_api_key');
+            if (savedApiKey) {
+                currentApiKey = savedApiKey;
+                document.getElementById('api-key-input').value = '••••••••••••••••';
+                document.getElementById('api-key-input').type = 'password';
+                updateApiStatus(true);
+                addConsoleMessage('API key restored from session', 'text-blue-400');
+            }
             
             // Start periodic updates
             updateSystemMetrics();
@@ -2177,6 +2482,29 @@
             updateSystemMetrics();
         }
         
+        // Setup API key handlers
+        function setupApiKeyHandlers() {
+            const activateBtn = document.getElementById('activate-api-btn');
+            const generateBtn = document.getElementById('generate-api-btn');
+            const apiKeyInput = document.getElementById('api-key-input');
+            
+            if (activateBtn) {
+                activateBtn.addEventListener('click', activateApiKey);
+            }
+            
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateApiKey);
+            }
+            
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        activateApiKey();
+                    }
+                });
+            }
+        }
+        
         // Generic button handler for remaining buttons
         function setupGenericButtonHandlers() {
             const buttons = document.querySelectorAll('.holographic-button');
@@ -2208,7 +2536,7 @@
                     card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
                 });
             });
-        });
+        }
     </script>
 </body>
 </html>
