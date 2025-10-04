@@ -1818,6 +1818,11 @@
         
         // Initialize Charts with Live Data
         async function initCharts() {
+            // If Chart.js failed to load, skip charts entirely
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js not loaded; skipping chart initialization');
+                return;
+            }
             // Scan Results Chart
             const scanResultsCtx = document.getElementById('scanResultsChart').getContext('2d');
             try {
@@ -2553,71 +2558,84 @@
         
         // Initialize everything when the page loads
         document.addEventListener('DOMContentLoaded', async function() {
-            initMatrixRain();
-            initDataStream();
-            initParticles();
-            initCharts();
-            initSatelliteMap();
-            
-            // Initialize the sophisticated Network Interface Manager
-            networkInterfaceManager = new NetworkInterfaceManager();
-            await networkInterfaceManager.loadInterfaces();
-            
-            setupGenericButtonHandlers();
-            setupApiKeyHandlers();
-            
-            // Try to restore API key from session storage
-            const savedApiKey = sessionStorage.getItem('cyber_matrix_api_key');
-            if (savedApiKey) {
-                currentApiKey = savedApiKey;
-                document.getElementById('api-key-input').value = '••••••••••••••••';
-                document.getElementById('api-key-input').type = 'password';
-                updateApiStatus(true);
-                addConsoleMessage('API key restored from session', 'text-blue-400');
-                // Load interfaces once key is present to populate dropdown
-                try {
-                    await networkInterfaceManager.loadInterfaces();
-                } catch (e) {}
+            // Always attach handlers, even if other inits fail
+            try { setupGenericButtonHandlers(); } catch (e) { console.error('setupGenericButtonHandlers failed', e); }
+            try { setupApiKeyHandlers(); } catch (e) { console.error('setupApiKeyHandlers failed', e); }
+
+            // Run optional visuals in isolation so errors don't block UI
+            try { initMatrixRain(); } catch (e) { console.warn('initMatrixRain failed', e); }
+            try { initDataStream(); } catch (e) { console.warn('initDataStream failed', e); }
+            try { initParticles(); } catch (e) { console.warn('initParticles failed', e); }
+            try { await initCharts(); } catch (e) { console.warn('initCharts failed', e); }
+            try { initSatelliteMap(); } catch (e) { console.warn('initSatelliteMap failed', e); }
+
+            // Initialize Network Interface Manager resiliently
+            try {
+                window.networkInterfaceManager = new NetworkInterfaceManager();
+                try { await window.networkInterfaceManager.loadInterfaces(); } catch (e) { console.warn('loadInterfaces failed', e); }
+            } catch (e) {
+                console.error('NetworkInterfaceManager init failed', e);
             }
-            
-            // Start periodic updates
-            updateSystemMetrics();
-            setInterval(updateChartsData, 10000); // Update every 10 seconds
-            
-            // Initial console message
-            addConsoleMessage('CYBER-MATRIX v8.0 initialized successfully', 'text-green-400');
-            addConsoleMessage('All systems online and ready', 'text-blue-400');
-            
-            // Add sample console output
-            const consoleOutput = document.getElementById('console-output');
-            const commands = [
-                {text: "> Scanning network 192.168.1.0/24...", color: "text-green-400"},
-                {text: "> Found 12 active hosts", color: "text-green-400"},
-                {text: "> 5 hosts identified as vulnerable", color: "text-yellow-400"},
-                {text: "> Initiating port scan on 192.168.1.10...", color: "text-blue-400"},
-                {text: "> Open ports: 22(SSH), 80(HTTP), 443(HTTPS), 21(FTP)", color: "text-green-400"},
-                {text: "> Vulnerability scan completed", color: "text-blue-400"},
-                {text: "> 3 high severity vulnerabilities found", color: "text-red-400"},
-                {text: "> Neural network analysis complete", color: "text-purple-400"},
-                {text: "> Ready for penetration testing", color: "text-green-400"}
-            ];
-            
-            let i = 0;
-            const interval = setInterval(() => {
-                if (i < commands.length) {
-                    const div = document.createElement('div');
-                    div.className = commands[i].color;
-                    div.textContent = commands[i].text;
-                    consoleOutput.appendChild(div);
-                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
-                    i++;
-                } else {
-                    clearInterval(interval);
+
+            // Restore API key if present
+            try {
+                const savedApiKey = sessionStorage.getItem('cyber_matrix_api_key');
+                if (savedApiKey) {
+                    currentApiKey = savedApiKey;
+                    const inputEl = document.getElementById('api-key-input');
+                    if (inputEl) {
+                        inputEl.value = '••••••••••••••••';
+                        inputEl.type = 'password';
+                    }
+                    updateApiStatus(true);
+                    addConsoleMessage('API key restored from session', 'text-blue-400');
+                    if (window.networkInterfaceManager) {
+                        try { await window.networkInterfaceManager.loadInterfaces(); } catch (e) {}
+                    }
                 }
-            }, 800);
-            
-            // Button Event Handlers
-            setupButtonHandlers();
+            } catch (e) { console.warn('API key restore failed', e); }
+
+            // Start periodic updates
+            try { updateSystemMetrics(); } catch (e) { console.warn('updateSystemMetrics failed', e); }
+            try { setInterval(updateChartsData, 10000); } catch (e) { console.warn('setInterval(updateChartsData) failed', e); }
+
+            // Initial console message and sample output are non-critical
+            try {
+                addConsoleMessage('CYBER-MATRIX v8.0 initialized successfully', 'text-green-400');
+                addConsoleMessage('All systems online and ready', 'text-blue-400');
+            } catch (e) { /* ignore */ }
+
+            try {
+                const consoleOutput = document.getElementById('console-output');
+                const commands = [
+                    {text: "> Scanning network 192.168.1.0/24...", color: "text-green-400"},
+                    {text: "> Found 12 active hosts", color: "text-green-400"},
+                    {text: "> 5 hosts identified as vulnerable", color: "text-yellow-400"},
+                    {text: "> Initiating port scan on 192.168.1.10...", color: "text-blue-400"},
+                    {text: "> Open ports: 22(SSH), 80(HTTP), 443(HTTPS), 21(FTP)", color: "text-green-400"},
+                    {text: "> Vulnerability scan completed", color: "text-blue-400"},
+                    {text: "> 3 high severity vulnerabilities found", color: "text-red-400"},
+                    {text: "> Neural network analysis complete", color: "text-purple-400"},
+                    {text: "> Ready for penetration testing", color: "text-green-400"}
+                ];
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (!consoleOutput) { clearInterval(interval); return; }
+                    if (i < commands.length) {
+                        const div = document.createElement('div');
+                        div.className = commands[i].color;
+                        div.textContent = commands[i].text;
+                        consoleOutput.appendChild(div);
+                        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                        i++;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 800);
+            } catch (e) { /* ignore */ }
+
+            // Button Event Handlers (specific actions)
+            try { setupButtonHandlers(); } catch (e) { console.error('setupButtonHandlers failed', e); }
         });
         
         // Setup button event handlers
