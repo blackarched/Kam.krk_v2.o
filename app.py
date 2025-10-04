@@ -527,15 +527,27 @@ def api_generate_key():
     """Generate a new API key"""
     try:
         new_api_key = secrets.token_urlsafe(32)
-        # In a real implementation, you might want to store this in a database
-        # For now, we'll just return it
+        # Update the active API key hash so new key is immediately valid
+        # Note: This rotates the in-memory key for this process
+        global API_KEY_HASH
+        API_KEY_HASH = generate_password_hash(new_api_key)
+
         return jsonify({
             "status": "success",
             "api_key": new_api_key,
-            "message": "New API key generated successfully"
+            "message": "New API key generated and activated successfully"
         })
     except Exception as e:
         return jsonify({"error": "Failed to generate API key"}), 500
+
+@app.route('/api/auth/verify', methods=['GET'])
+@require_api_key
+def api_verify_key():
+    """Verify provided API key is valid"""
+    return jsonify({
+        "status": "success",
+        "message": "API key is valid"
+    })
 
 @app.route('/api/system/metrics')
 def api_system_metrics():
