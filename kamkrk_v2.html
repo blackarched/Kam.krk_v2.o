@@ -89,9 +89,10 @@
             letter-spacing: 1px;
         }
         
+        /* Matrix rain animation disabled for performance */
         @keyframes fall {
-            0% { transform: translateY(-10%) translateZ(0); opacity: 1; }
-            100% { transform: translateY(200%) translateZ(0); opacity: 0; }
+            0% { transform: translateY(0%) translateZ(0); opacity: 0.8; }
+            100% { transform: translateY(0%) translateZ(0); opacity: 0.8; }
         }
         
         /* 3D Holographic UI Elements */
@@ -148,11 +149,10 @@
             animation: scan-animation 4s infinite ease-in-out;
         }
         
+        /* Scan animation disabled for performance */
         @keyframes scan-animation {
-            0% { top: 0; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
+            0% { top: 0; opacity: 0.5; }
+            100% { top: 0; opacity: 0.5; }
         }
         
         /* 3D Corner decorations */
@@ -172,9 +172,10 @@
         .corner:nth-child(3) { bottom: 0; left: 0; border-right: none; border-top: none; }
         .corner:nth-child(4) { bottom: 0; right: 0; border-left: none; border-top: none; }
         
+        /* Corner pulse animation disabled for performance */
         @keyframes corner-pulse {
             0% { border-color: rgba(0, 221, 255, 0.5); width: 20px; height: 20px; }
-            100% { border-color: rgba(255, 0, 222, 0.5); width: 30px; height: 30px; }
+            100% { border-color: rgba(0, 221, 255, 0.5); width: 20px; height: 20px; }
         }
         
         /* Enhanced Chart Styles with 3D */
@@ -320,7 +321,7 @@
             border-radius: 50%;
             background: var(--primary-color);
             box-shadow: 0 0 10px var(--primary-color);
-            animation: pulse 2s infinite;
+            /* animation: pulse 2s infinite; disabled for performance */
             cursor: pointer;
             transition: all 0.3s ease;
             transform-style: preserve-3d;
@@ -389,9 +390,10 @@
             transform-style: preserve-3d;
         }
         
+        /* Particle float animation disabled for performance */
         @keyframes particle-float {
-            0%, 100% { transform: translateY(0) translateX(0) translateZ(0); opacity: 0; }
-            50% { transform: translateY(-10px) translateX(5px) translateZ(10px); opacity: 1; }
+            0%, 100% { transform: translateY(0) translateX(0) translateZ(0); opacity: 0.3; }
+            50% { transform: translateY(0) translateX(0) translateZ(0); opacity: 0.3; }
         }
         
         /* Enhanced 3D Glitch Effect */
@@ -427,52 +429,14 @@
             transform: translateZ(-10px);
         }
         
+        /* Glitch animation disabled for performance */
         @keyframes glitch-anim {
-            0% { clip: rect(42px, 9999px, 44px, 0); }
-            5% { clip: rect(12px, 9999px, 59px, 0); }
-            10% { clip: rect(48px, 9999px, 29px, 0); }
-            15% { clip: rect(42px, 9999px, 73px, 0); }
-            20% { clip: rect(63px, 9999px, 27px, 0); }
-            25% { clip: rect(34px, 9999px, 55px, 0); }
-            30% { clip: rect(86px, 9999px, 73px, 0); }
-            35% { clip: rect(20px, 9999px, 20px, 0); }
-            40% { clip: rect(26px, 9999px, 60px, 0); }
-            45% { clip: rect(25px, 9999px, 66px, 0); }
-            50% { clip: rect(57px, 9999px, 98px, 0); }
-            55% { clip: rect(5px, 9999px, 46px, 0); }
-            60% { clip: rect(82px, 9999px, 31px, 0); }
-            65% { clip: rect(54px, 9999px, 27px, 0); }
-            70% { clip: rect(28px, 9999px, 99px, 0); }
-            75% { clip: rect(45px, 9999px, 69px, 0); }
-            80% { clip: rect(23px, 9999px, 85px, 0); }
-            85% { clip: rect(54px, 9999px, 84px, 0); }
-            90% { clip: rect(45px, 9999px, 47px, 0); }
-            95% { clip: rect(37px, 9999px, 20px, 0); }
-            100% { clip: rect(4px, 9999px, 91px, 0); }
+            0%, 100% { clip: rect(42px, 9999px, 44px, 0); }
         }
         
+        /* Glitch animation 2 disabled for performance */
         @keyframes glitch-anim2 {
-            0% { clip: rect(65px, 9999px, 100px, 0); }
-            5% { clip: rect(52px, 9999px, 74px, 0); }
-            10% { clip: rect(79px, 9999px, 85px, 0); }
-            15% { clip: rect(75px, 9999px, 5px, 0); }
-            20% { clip: rect(67px, 9999px, 61px, 0); }
-            25% { clip: rect(14px, 9999px, 79px, 0); }
-            30% { clip: rect(1px, 9999px, 66px, 0); }
-            35% { clip: rect(86px, 9999px, 30px, 0); }
-            40% { clip: rect(23px, 9999px, 98px, 0); }
-            45% { clip: rect(85px, 9999px, 72px, 0); }
-            50% { clip: rect(71px, 9999px, 75px, 0); }
-            55% { clip: rect(2px, 9999px, 48px, 0); }
-            60% { clip: rect(30px, 9999px, 16px, 0); }
-            65% { clip: rect(59px, 9999px, 50px, 0); }
-            70% { clip: rect(41px, 9999px, 62px, 0); }
-            75% { clip: rect(2px, 9999px, 82px, 0); }
-            80% { clip: rect(47px, 9999px, 73px, 0); }
-            85% { clip: rect(3px, 9999px, 27px, 0); }
-            90% { clip: rect(26px, 9999px, 55px, 0); }
-            95% { clip: rect(42px, 9999px, 97px, 0); }
-            100% { clip: rect(38px, 9999px, 49px, 0); }
+            0%, 100% { clip: rect(65px, 9999px, 100px, 0); }
         }
         
         /* 3D Progress Bars */
@@ -505,7 +469,7 @@
             background-image: linear-gradient(-45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
             z-index: 1;
             background-size: 50px 50px;
-            animation: move 2s linear infinite;
+            /* animation: move 2s linear infinite; disabled for performance */
             overflow: hidden;
         }
         
@@ -520,10 +484,9 @@
             transform-style: preserve-3d;
         }
         
+        /* Floating animation disabled for performance */
         @keyframes floating {
-            0% { transform: translate(0, 0px) rotateX(0) rotateY(0); }
-            50% { transform: translate(0, -10px) rotateX(5deg) rotateY(5deg); }
-            100% { transform: translate(0, 0px) rotateX(0) rotateY(0); }
+            0%, 100% { transform: translate(0, 0px) rotateX(0) rotateY(0); }
         }
         
         /* Enhanced Data Stream Effect */
@@ -546,9 +509,9 @@
             transform-style: preserve-3d;
         }
         
+        /* Data fall animation disabled for performance */
         @keyframes data-fall {
-            0% { top: -20px; opacity: 1; transform: translateZ(0); }
-            100% { top: 100%; opacity: 0; transform: translateZ(100px); }
+            0%, 100% { top: -20px; opacity: 0.5; transform: translateZ(0); }
         }
 
         /* Financial Chart Styles */
@@ -669,15 +632,14 @@
             transform-style: preserve-3d;
         }
 
+        /* Orbit rotate animation disabled for performance */
         @keyframes orbit-rotate {
-            0% { transform: translate(-50%, -50%) rotateX(60deg) rotateZ(0); }
-            100% { transform: translate(-50%, -50%) rotateX(60deg) rotateZ(360deg); }
+            0%, 100% { transform: translate(-50%, -50%) rotateX(60deg) rotateZ(0); }
         }
 
+        /* Satellite pulse animation disabled for performance */
         @keyframes satellite-pulse {
-            0% { transform: scale(1) translateZ(0); box-shadow: 0 0 5px var(--primary-color); }
-            50% { transform: scale(1.2) translateZ(10px); box-shadow: 0 0 15px var(--primary-color); }
-            100% { transform: scale(1) translateZ(0); box-shadow: 0 0 5px var(--primary-color); }
+            0%, 100% { transform: scale(1) translateZ(0); box-shadow: 0 0 5px var(--primary-color); }
         }
 
         /* 3D Text Effects */
@@ -710,11 +672,9 @@
             animation: beam-sweep 6s infinite;
         }
 
+        /* Beam sweep animation disabled for performance */
         @keyframes beam-sweep {
-            0% { top: 0; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
+            0%, 100% { top: 0; opacity: 0.3; }
         }
 
         /* 3D Panel Effect */
@@ -746,7 +706,7 @@
     <!-- Main Content -->
     <div class="container mx-auto p-4">
         <!-- Header -->
-        <header class="text-center mb-8 floating">
+        <header class="text-center mb-8">
             <h1 class="text-5xl font-bold mb-4 glitch-text text-3d" data-text="CYBER-MATRIX v8.0" style="color: var(--primary-color); text-shadow: 0 0 15px var(--primary-color);">CYBER-MATRIX v8.0</h1>
             <p class="text-gray-400 text-xl mb-6">ADVANCED HOLOGRAPHIC PENETRATION SUITE</p>
             
@@ -757,8 +717,8 @@
                     <span>SYSTEM ONLINE</span>
                 </div>
                 <div class="flex items-center">
-                    <span class="status-indicator status-online"></span>
-                    <span>API CONNECTED</span>
+                    <span id="api-status-indicator" class="status-indicator status-offline"></span>
+                    <span id="api-status-text">API DISCONNECTED</span>
                 </div>
                 <div class="flex items-center">
                     <span class="status-indicator status-warning"></span>
@@ -769,35 +729,108 @@
                     <span>NEURAL NET ENGAGED</span>
                 </div>
             </div>
+            
+            <!-- API Key Activation Panel -->
+            <div class="mt-6 flex justify-center">
+                <div class="holographic-card compact-card" style="max-width: 500px;">
+                    <h3 class="text-lg font-bold mb-4" style="color: var(--primary-color);">API KEY ACTIVATION</h3>
+                    <div class="flex gap-2">
+                        <input id="api-key-input" type="password" class="holographic-input flex-grow" placeholder="Enter API Key...">
+                        <button id="generate-api-btn" type="button" class="holographic-button">GENERATE</button>
+                        <button id="activate-api-btn" type="button" class="holographic-button">ACTIVATE</button>
+                    </div>
+                    <div id="api-key-status" class="mt-2 text-sm"></div>
+                </div>
+            </div>
         </header>
         
         <!-- Dashboard Grid -->
         <div class="dashboard-grid">
-            <!-- Network Scanner Card -->
-            <div class="holographic-card compact-card panel-3d">
+            <!-- Enhanced Network Interface Manager Card -->
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="holographic-beam"></div>
                 
-                <h2 class="text-xl font-bold mb-4" style="color: var(--primary-color);">NETWORK SCANNER</h2>
+                <h2 class="text-xl font-bold mb-4" style="color: var(--primary-color);">NETWORK INTERFACE MANAGER</h2>
                 
+                <!-- Interface Selection Section -->
                 <div class="mb-4">
-                    <label class="block text-sm mb-2" style="color: var(--primary-color);">NETWORK INTERFACE</label>
-                    <select class="holographic-input">
-                        <option value="eth0">eth0</option>
-                        <option value="wlan0">wlan0</option>
-                        <option value="tun0">tun0</option>
-                    </select>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm" style="color: var(--primary-color);">NETWORK INTERFACE</label>
+                        <button id="refreshInterfacesBtn" class="holographic-button text-xs px-2 py-1">⟳ REFRESH</button>
+                    </div>
+                    <select id="interfaceSelect" class="holographic-input w-full"></select>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-sm mb-2" style="color: var(--primary-color);">IP RANGE (CIDR)</label>
-                    <input class="holographic-input" type="text" placeholder="192.168.1.0/24" value="192.168.1.0/24">
+                <!-- Interface Status Display -->
+                <div id="interfaceStatus" class="mb-4 p-3 rounded" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(192, 0, 255, 0.2);">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <span class="text-gray-400">Status:</span>
+                            <span id="ifaceState" class="ml-1 font-bold">—</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Type:</span>
+                            <span id="ifaceType" class="ml-1">—</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Mode:</span>
+                            <span id="ifaceMode" class="ml-1">—</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">IPv4:</span>
+                            <span id="ifaceIp" class="ml-1">—</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-gray-400">MAC:</span>
+                            <span id="ifaceMac" class="ml-1 font-mono text-xs">—</span>
+                        </div>
+                    </div>
                 </div>
                 
-                <button class="holographic-button w-full">INITIATE NETWORK SCAN</button>
+                <!-- Monitor Mode Control -->
+                <div class="mb-4 p-3 rounded" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 0, 222, 0.2);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <input id="monitorToggle" type="checkbox" class="scale-125">
+                                <label for="monitorToggle" class="text-sm font-bold" style="color: var(--secondary-color);">Monitor Mode</label>
+                            </div>
+                            <div id="monitorStatus" class="text-xs mt-1 text-gray-400">Select wireless interface</div>
+                        </div>
+                        <div id="monitorIndicator" class="w-3 h-3 rounded-full bg-gray-500"></div>
+                    </div>
+                </div>
+                
+                <!-- Network Scanning Section -->
+                <div class="mb-4">
+                    <label class="block text-sm mb-2" style="color: var(--primary-color);">NETWORK SCANNING</label>
+                    <div class="flex gap-2">
+                        <input id="ipRangeInput" class="holographic-input flex-grow" type="text" placeholder="192.168.1.0/24" value="192.168.1.0/24">
+                        <button id="networkScanBtn" class="holographic-button">SCAN</button>
+                    </div>
+                </div>
+                
+                <!-- Interface Summary -->
+                <div id="interfaceSummary" class="mb-4 text-xs">
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <div class="text-gray-400">Total</div>
+                            <div id="totalInterfaces" class="font-bold" style="color: var(--accent-color);">0</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400">Wireless</div>
+                            <div id="wirelessInterfaces" class="font-bold" style="color: var(--primary-color);">0</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400">Monitor</div>
+                            <div id="monitorInterfaces" class="font-bold" style="color: var(--secondary-color);">0</div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Scan Results Chart -->
                 <div class="mt-4 relative">
@@ -807,7 +840,7 @@
             </div>
             
             <!-- Port Scanner Card -->
-            <div class="holographic-card compact-card panel-3d">
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -836,7 +869,7 @@
             </div>
             
             <!-- Vulnerability Scanner Card -->
-            <div class="holographic-card compact-card panel-3d">
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -870,7 +903,7 @@
             </div>
             
             <!-- 3D Satellite Network Topology Visualization -->
-            <div class="holographic-card compact-card network-topology panel-3d">
+            <div class="holographic-card compact-card network-topology">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -886,21 +919,21 @@
                 <div class="mt-4 flex justify-between">
                     <div>
                         <span class="status-indicator status-online"></span>
-                        <span>ACTIVE HOSTS: 12</span>
+                        <span id="active-hosts">ACTIVE HOSTS: 0</span>
                     </div>
                     <div>
                         <span class="status-indicator status-offline"></span>
-                        <span>INACTIVE HOSTS: 3</span>
+                        <span id="inactive-hosts">INACTIVE HOSTS: 0</span>
                     </div>
                     <div>
                         <span class="status-indicator status-warning"></span>
-                        <span>VULNERABLE: 5</span>
+                        <span id="vulnerable-hosts">VULNERABLE: 0</span>
                     </div>
                 </div>
             </div>
             
             <!-- Attack Dashboard Card -->
-            <div class="holographic-card compact-card panel-3d">
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -954,7 +987,7 @@
             </div>
             
             <!-- System Monitor Card -->
-            <div class="holographic-card compact-card panel-3d">
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -1005,7 +1038,7 @@
             </div>
 
             <!-- New Financial-Style Charts -->
-            <div class="holographic-card compact-card panel-3d">
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -1042,7 +1075,7 @@
             </div>
 
             <!-- Candlestick Chart Card -->
-            <div class="holographic-card compact-card panel-3d">
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -1055,15 +1088,15 @@
                 <div class="grid grid-cols-3 gap-2 mb-4">
                     <div class="text-center">
                         <div class="data-label">PACKETS/SEC</div>
-                        <div class="text-lg" style="color: var(--accent-color);">8.785</div>
+                        <div id="packets-per-sec" class="text-lg" style="color: var(--accent-color);">0.000</div>
                     </div>
                     <div class="text-center">
                         <div class="data-label">THREATS</div>
-                        <div class="text-lg" style="color: var(--secondary-color);">4.174</div>
+                        <div id="threats-count" class="text-lg" style="color: var(--secondary-color);">0</div>
                     </div>
                     <div class="text-center">
                         <div class="data-label">BANDWIDTH</div>
-                        <div class="text-lg" style="color: var(--primary-color);">8.510</div>
+                        <div id="bandwidth-usage" class="text-lg" style="color: var(--primary-color);">0.000</div>
                     </div>
                 </div>
                 
@@ -1075,7 +1108,7 @@
             </div>
 
             <!-- Performance Metrics Card -->
-            <div class="holographic-card compact-card panel-3d">
+            <div class="holographic-card compact-card">
                 <div class="corner"></div>
                 <div class="corner"></div>
                 <div class="corner"></div>
@@ -1133,7 +1166,7 @@
         </div>
         
         <!-- Console Output -->
-        <div class="holographic-card compact-card mt-6 panel-3d">
+        <div class="holographic-card compact-card mt-6">
             <div class="corner"></div>
             <div class="corner"></div>
             <div class="corner"></div>
@@ -1238,146 +1271,986 @@
             });
         }
         
-        // Initialize Charts
-        function initCharts() {
-            // Scan Results Chart
-            const scanResultsCtx = document.getElementById('scanResultsChart').getContext('2d');
-            new Chart(scanResultsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Active Hosts', 'Inactive Hosts', 'Vulnerable'],
-                    datasets: [{
-                        data: [12, 3, 5],
-                        backgroundColor: ['#00ff41', '#ff00de', '#c000ff'],
-                        borderColor: ['#000', '#000', '#000'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
+        // API Configuration
+        const API_BASE = '/api';
+        let currentApiKey = null;
+        
+        // Global chart instances
+        let scanResultsChart, portStatusChart, vulnerabilityChart, attackProgressChart, systemMetricsChart;
+        let financialChart, candlestickChart, performanceChart;
+        let interfacesCache = [];
+        
+        // API Helper Functions
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                // Add API key to headers if available
+                if (currentApiKey) {
+                    options.headers['X-API-Key'] = currentApiKey;
+                }
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(API_BASE + endpoint, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        updateApiStatus(false);
+                        throw new Error('Invalid or missing API key');
+                    }
+                    throw new Error(result.error || 'API request failed');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                addConsoleMessage(`API Error: ${error.message}`, 'text-red-400');
+                throw error;
+            }
+        }
+        
+        // API Key Management
+        function updateApiStatus(isConnected) {
+            const indicator = document.getElementById('api-status-indicator');
+            const text = document.getElementById('api-status-text');
+            
+            if (isConnected) {
+                indicator.className = 'status-indicator status-online';
+                text.textContent = 'API CONNECTED';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'API DISCONNECTED';
+            }
+        }
+        
+        async function activateApiKey() {
+            const activateBtn = document.getElementById('activate-api-btn');
+            const apiKeyInput = document.getElementById('api-key-input');
+            const statusDiv = document.getElementById('api-key-status');
+            const apiKey = apiKeyInput.value.trim();
+
+            if (!apiKey) {
+                statusDiv.innerHTML = '<span class="text-red-400">Please enter an API key</span>';
+                return;
+            }
+
+            // Disable button and show loading state
+            if (activateBtn) {
+                activateBtn.disabled = true;
+                activateBtn.textContent = 'ACTIVATING...';
+            }
+
+            addConsoleMessage('Attempting to activate API key...', 'text-gray-400');
+
+            try {
+                // Use the new, dedicated activation endpoint
+                const response = await fetch('/api/auth/activate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ api_key: apiKey }),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Activation failed');
+                }
+
+                currentApiKey = apiKey;
+                statusDiv.innerHTML = '<span class="text-green-400">✓ API key successfully activated</span>';
+                updateApiStatus(true);
+                addConsoleMessage('API key activated successfully', 'text-green-400');
+
+                // Store API key in session storage
+                sessionStorage.setItem('cyber_matrix_api_key', apiKey);
+
+                // Hide the API key input after successful activation
+                apiKeyInput.type = 'password';
+                apiKeyInput.value = '••••••••••••••••';
+
+                // Change button text to indicate success
+                if (activateBtn) {
+                    activateBtn.textContent = 'ACTIVATED ✓';
+                    activateBtn.style.background = 'linear-gradient(135deg, #00ff41, #00aa2a)';
+                }
+
+            } catch (error) {
+                currentApiKey = null;
+                statusDiv.innerHTML = `<span class="text-red-400">✗ ${error.message}</span>`;
+                updateApiStatus(false);
+                addConsoleMessage(`API key activation failed: ${error.message}`, 'text-red-400');
+
+                // Reset button
+                if (activateBtn) {
+                    activateBtn.disabled = false;
+                    activateBtn.textContent = 'ACTIVATE';
+                }
+            }
+        }
+        
+        async function generateApiKey() {
+            const statusDiv = document.getElementById('api-key-status');
+            const apiKeyInput = document.getElementById('api-key-input');
+            
+            try {
+                const response = await fetch('/api/auth/generate-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    apiKeyInput.value = result.api_key;
+                    apiKeyInput.type = 'text';
+                    statusDiv.innerHTML = '<span class="text-blue-400">New API key generated. Click ACTIVATE to use it.</span>';
+                    addConsoleMessage('New API key generated', 'text-blue-400');
+                } else {
+                    throw new Error(result.error || 'Failed to generate API key');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<span class="text-red-400">✗ Failed to generate API key</span>';
+                addConsoleMessage('API key generation failed', 'text-red-400');
+            }
+        }
+        
+        // Console output helper
+        function addConsoleMessage(message, className = 'text-green-400') {
+            const consoleOutput = document.getElementById('console-output');
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = `> ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        // Update system metrics display
+        async function updateSystemMetrics() {
+            try {
+                const metrics = await apiCall('/system/metrics');
+                
+                // Update progress bars
+                const cpuBar = document.querySelector('.progress-fill[style*="65%"]') || document.querySelectorAll('.progress-fill')[0];
+                const memoryBar = document.querySelector('.progress-fill[style*="42%"]') || document.querySelectorAll('.progress-fill')[1];
+                const networkBar = document.querySelector('.progress-fill[style*="78%"]') || document.querySelectorAll('.progress-fill')[2];
+                const encryptionBar = document.querySelector('.progress-fill[style*="92%"]') || document.querySelectorAll('.progress-fill')[3];
+
+                if (cpuBar) {
+                    cpuBar.style.width = `${metrics.cpu_usage}%`;
+                    cpuBar.parentElement.nextElementSibling.textContent = `${Math.round(metrics.cpu_usage)}%`;
+                }
+
+                if (memoryBar) {
+                    memoryBar.style.width = `${metrics.memory_usage}%`;
+                    memoryBar.parentElement.nextElementSibling.textContent = `${Math.round(metrics.memory_usage)}%`;
+                }
+
+                if (networkBar) {
+                    networkBar.style.width = `${metrics.network_traffic}%`;
+                    networkBar.parentElement.nextElementSibling.textContent = `${Math.round(metrics.network_traffic)}%`;
+                }
+
+                if (encryptionBar) {
+                    encryptionBar.style.width = `${metrics.encryption_level}%`;
+                    encryptionBar.parentElement.nextElementSibling.textContent = `${Math.round(metrics.encryption_level)}%`;
+                }
+                
+                // Update status indicators
+                const statusElements = document.querySelectorAll('.status-indicator + span');
+                if (statusElements.length >= 4) {
+                    statusElements[0].textContent = `ACTIVE HOSTS: ${metrics.devices_found}`;
+                    statusElements[2].textContent = `VULNERABLE: ${metrics.vulnerabilities}`;
+                }
+
+                // Update satellite map status
+                const activeHostsEl = document.getElementById('active-hosts');
+                const inactiveHostsEl = document.getElementById('inactive-hosts');
+                const vulnerableHostsEl = document.getElementById('vulnerable-hosts');
+
+                if (activeHostsEl) activeHostsEl.textContent = `ACTIVE HOSTS: ${metrics.devices_found}`;
+                if (inactiveHostsEl) inactiveHostsEl.textContent = `INACTIVE HOSTS: ${Math.max(0, 20 - metrics.devices_found)}`; // Mock inactive
+                if (vulnerableHostsEl) vulnerableHostsEl.textContent = `VULNERABLE: ${metrics.vulnerabilities}`;
+                
+                // Update data displays with real metrics
+                const dataValues = document.querySelectorAll('.data-value');
+                if (dataValues.length >= 4) {
+                    dataValues[0].textContent = metrics.threat_level.toFixed(3);
+                    dataValues[1].textContent = metrics.vulnerability_index.toFixed(3);
+                    dataValues[2].textContent = metrics.encryption_strength.toFixed(3);
+                    dataValues[3].textContent = metrics.network_health.toFixed(3);
+                }
+
+                // Update network activity mini data
+                const packetsEl = document.getElementById('packets-per-sec');
+                const threatsEl = document.getElementById('threats-count');
+                const bandwidthEl = document.getElementById('bandwidth-usage');
+
+                if (packetsEl) packetsEl.textContent = (metrics.network_traffic * 10).toFixed(3);
+                if (threatsEl) threatsEl.textContent = metrics.threats_detected;
+                if (bandwidthEl) bandwidthEl.textContent = (metrics.network_traffic * 8.5).toFixed(3);
+
+                // Update performance metrics text values
+                const perfValues = document.querySelectorAll('.progress-bar + span');
+                if (perfValues.length >= 4) {
+                    // Response time (mock calculation)
+                    perfValues[0].textContent = `${(5 + Math.random() * 5).toFixed(3)}ms`;
+                    // Uptime (fixed high value)
+                    perfValues[1].textContent = '99.8%';
+                    // Throughput
+                    perfValues[2].textContent = `${(2 + Math.random() * 3).toFixed(3)}Gbps`;
+                    // Encryption multiplier
+                    perfValues[3].textContent = `${(2 + Math.random()).toFixed(3)}x`;
+                }
+                
+            } catch (error) {
+                console.error('Failed to update system metrics:', error);
+            }
+        }
+
+        // Enhanced Network Interface Manager - Sophisticated Implementation
+        class NetworkInterfaceManager {
+            constructor() {
+                this.interfacesCache = [];
+                this.selectedInterface = null;
+                this.isRefreshing = false;
+                this.autoRefreshInterval = null;
+                this.scanProgressInterval = null;
+
+                this.initializeEventHandlers();
+                this.startAutoRefresh();
+            }
+            
+            initializeEventHandlers() {
+                // Interface selection change
+                const select = document.getElementById('interfaceSelect');
+                if (select) {
+                    select.addEventListener('change', () => this.onInterfaceSelected());
+                }
+                
+                // Refresh button
+                const refreshBtn = document.getElementById('refreshInterfacesBtn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => this.refreshInterfaces());
+                }
+                
+                // Monitor mode toggle
+                const monitorToggle = document.getElementById('monitorToggle');
+                if (monitorToggle) {
+                    monitorToggle.addEventListener('change', (e) => this.toggleMonitorMode(e.target.checked));
+                }
+                
+                // Network scan button
+                const scanBtn = document.getElementById('networkScanBtn');
+                if (scanBtn) {
+                    scanBtn.addEventListener('click', () => this.initiateNetworkScan());
+                }
+            }
+            
+            async loadInterfaces() {
+                try {
+                    const data = await apiCall('/network/interfaces');
+                    this.interfacesCache = data.interfaces || [];
+                    this.updateInterfaceDropdown();
+                    this.updateInterfaceSummary();
+                    
+                    // Auto-select first interface if none selected
+                    const select = document.getElementById('interfaceSelect');
+                    if (select && this.interfacesCache.length > 0 && !select.value) {
+                        select.value = this.interfacesCache[0].name;
+                        this.onInterfaceSelected();
+                    }
+                    
+                    addConsoleMessage(`Loaded ${this.interfacesCache.length} network interfaces`, 'text-green-400');
+                } catch (e) {
+                    addConsoleMessage(`Failed to load interfaces: ${e.message}`, 'text-red-400');
+                }
+            }
+            
+            updateInterfaceDropdown() {
+                const select = document.getElementById('interfaceSelect');
+                if (!select) return;
+                
+                const currentSelection = select.value;
+                select.innerHTML = '<option value="">Select Interface...</option>';
+                
+                this.interfacesCache.forEach((iface) => {
+                    const option = document.createElement('option');
+                    option.value = iface.name;
+                    
+                    // Create sophisticated display string
+                    const status = iface.is_up ? 'UP' : 'DOWN';
+                    const type = iface.is_wireless ? 'WiFi' : iface.type.toUpperCase();
+                    const mode = iface.is_wireless ? `[${iface.mode}]` : '';
+                    
+                    option.textContent = `${iface.name} — ${type} ${mode} (${status})`;
+                    
+                    // Color coding based on status
+                    if (iface.is_monitor) {
+                        option.style.color = '#ff00de';  // Monitor mode - magenta
+                    } else if (iface.is_up) {
+                        option.style.color = '#00ff41';  // Up - green
+                    } else {
+                        option.style.color = '#666666';  // Down - gray
+                    }
+                    
+                    select.appendChild(option);
+                });
+                
+                // Restore selection if still valid
+                if (currentSelection && this.interfacesCache.find(i => i.name === currentSelection)) {
+                    select.value = currentSelection;
+                }
+            }
+            
+            updateInterfaceSummary() {
+                const summary = {
+                    total: this.interfacesCache.length,
+                    wireless: this.interfacesCache.filter(i => i.is_wireless).length,
+                    monitor: this.interfacesCache.filter(i => i.is_monitor).length
+                };
+                
+                document.getElementById('totalInterfaces').textContent = summary.total;
+                document.getElementById('wirelessInterfaces').textContent = summary.wireless;
+                document.getElementById('monitorInterfaces').textContent = summary.monitor;
+            }
+            
+            onInterfaceSelected() {
+                const select = document.getElementById('interfaceSelect');
+                const interfaceName = select ? select.value : '';
+                
+                this.selectedInterface = this.interfacesCache.find(i => i.name === interfaceName);
+                this.updateInterfaceDetails();
+            }
+            
+            updateInterfaceDetails() {
+                const iface = this.selectedInterface;
+                
+                // Update status elements
+                const stateEl = document.getElementById('ifaceState');
+                const typeEl = document.getElementById('ifaceType');
+                const modeEl = document.getElementById('ifaceMode');
+                const ipEl = document.getElementById('ifaceIp');
+                const macEl = document.getElementById('ifaceMac');
+                const monitorToggle = document.getElementById('monitorToggle');
+                const monitorStatus = document.getElementById('monitorStatus');
+                const monitorIndicator = document.getElementById('monitorIndicator');
+                
+                if (!iface) {
+                    // Clear all fields
+                    if (stateEl) stateEl.textContent = '—';
+                    if (typeEl) typeEl.textContent = '—';
+                    if (modeEl) modeEl.textContent = '—';
+                    if (ipEl) ipEl.textContent = '—';
+                    if (macEl) macEl.textContent = '—';
+                    if (monitorToggle) monitorToggle.disabled = true;
+                    if (monitorStatus) monitorStatus.textContent = 'Select wireless interface';
+                    if (monitorIndicator) {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-gray-500';
+                    }
+                    return;
+                }
+                
+                // Update interface details
+                if (stateEl) {
+                    stateEl.textContent = iface.is_up ? 'UP' : 'DOWN';
+                    stateEl.style.color = iface.is_up ? '#00ff41' : '#ff0000';
+                }
+                
+                if (typeEl) {
+                    typeEl.textContent = iface.is_wireless ? `Wireless (${iface.type})` : iface.type;
+                }
+                
+                if (modeEl) {
+                    modeEl.textContent = iface.mode || 'N/A';
+                    modeEl.style.color = iface.is_monitor ? '#ff00de' : '#ffffff';
+                }
+                
+                if (ipEl) {
+                    ipEl.textContent = iface.ipv4 || 'No IP';
+                }
+                
+                if (macEl) {
+                    macEl.textContent = iface.mac || 'No MAC';
+                }
+                
+                // Update monitor mode controls
+                if (monitorToggle) {
+                    monitorToggle.disabled = !iface.is_wireless || !iface.monitor_supported;
+                    monitorToggle.checked = iface.is_monitor || false;
+                }
+                
+                if (monitorStatus) {
+                    if (!iface.is_wireless) {
+                        monitorStatus.textContent = 'Not a wireless interface';
+                        monitorStatus.style.color = '#666666';
+                    } else if (!iface.monitor_supported) {
+                        monitorStatus.textContent = 'Monitor mode not supported';
+                        monitorStatus.style.color = '#ff0000';
+                    } else if (iface.is_monitor) {
+                        monitorStatus.textContent = 'Monitor mode active';
+                        monitorStatus.style.color = '#ff00de';
+                    } else {
+                        monitorStatus.textContent = 'Monitor mode available';
+                        monitorStatus.style.color = '#00ff41';
                     }
                 }
-            });
+                
+                if (monitorIndicator) {
+                    if (iface.is_monitor) {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-pink-500 animate-pulse';
+                    } else if (iface.is_wireless && iface.monitor_supported) {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-green-500';
+                    } else {
+                        monitorIndicator.className = 'w-3 h-3 rounded-full bg-gray-500';
+                    }
+                }
+            }
             
-            // Port Status Chart
-            const portStatusCtx = document.getElementById('portStatusChart').getContext('2d');
-            new Chart(portStatusCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['SSH', 'HTTP', 'HTTPS', 'FTP', 'SMB', 'RDP'],
-                    datasets: [{
-                        label: 'Port Status',
-                        data: [22, 80, 443, 21, 445, 3389],
-                        backgroundColor: [
-                            '#c000ff', '#ff00de', '#00ff41', '#c000ff', 
-                            '#ff00de', '#00ff41'
-                        ],
-                        borderColor: '#000',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+            async toggleMonitorMode(enable) {
+                if (!this.selectedInterface) {
+                    addConsoleMessage('No interface selected', 'text-red-400');
+                    return;
+                }
+                
+                const interfaceName = this.selectedInterface.name;
+                const monitorToggle = document.getElementById('monitorToggle');
+                
+                try {
+                    // Disable controls during operation
+                    if (monitorToggle) monitorToggle.disabled = true;
+                    
+                    addConsoleMessage(`${enable ? 'Enabling' : 'Disabling'} monitor mode on ${interfaceName}...`, 'text-blue-400');
+                    
+                    const result = await apiCall('/network/monitor', 'POST', {
+                        interface: interfaceName,
+                        enable: enable
+                    });
+                    
+                    addConsoleMessage(result.message || `Monitor mode ${enable ? 'enabled' : 'disabled'}`, 'text-green-400');
+                    
+                    // Refresh interface data
+                    await this.loadInterfaces();
+                    
+                    // Restore selection
+                    const select = document.getElementById('interfaceSelect');
+                    if (select) {
+                        select.value = interfaceName;
+                        this.onInterfaceSelected();
+                    }
+                    
+                } catch (error) {
+                    addConsoleMessage(`Monitor mode toggle failed: ${error.message}`, 'text-red-400');
+                    
+                    // Revert checkbox state
+                    if (monitorToggle) {
+                        monitorToggle.checked = !enable;
+                    }
+                } finally {
+                    // Re-enable controls
+                    if (monitorToggle) monitorToggle.disabled = false;
+                }
+            }
+            
+            async refreshInterfaces() {
+                if (this.isRefreshing) return;
+                
+                this.isRefreshing = true;
+                const refreshBtn = document.getElementById('refreshInterfacesBtn');
+                
+                try {
+                    if (refreshBtn) {
+                        refreshBtn.disabled = true;
+                        refreshBtn.textContent = '⟳ REFRESHING...';
+                    }
+                    
+                    await apiCall('/network/interfaces/refresh', 'POST');
+                    await this.loadInterfaces();
+                    
+                    addConsoleMessage('Interface list refreshed successfully', 'text-green-400');
+                    
+                } catch (error) {
+                    addConsoleMessage(`Failed to refresh interfaces: ${error.message}`, 'text-red-400');
+                } finally {
+                    this.isRefreshing = false;
+                    if (refreshBtn) {
+                        refreshBtn.disabled = false;
+                        refreshBtn.textContent = '⟳ REFRESH';
+                    }
+                }
+            }
+            
+            scanProgressInterval = null;
+
+            async initiateNetworkScan() {
+                const ipRangeInput = document.getElementById('ipRangeInput');
+                const scanBtn = document.getElementById('networkScanBtn');
+                const ipRange = ipRangeInput ? ipRangeInput.value : '192.168.1.0/24';
+
+                // Clear any existing progress polling
+                if (this.scanProgressInterval) {
+                    clearInterval(this.scanProgressInterval);
+                    this.scanProgressInterval = null;
+                }
+
+                try {
+                    if (scanBtn) {
+                        scanBtn.disabled = true;
+                        scanBtn.textContent = 'STARTING...';
+                    }
+
+                    addConsoleMessage(`Initiating network scan on ${ipRange}...`, 'text-blue-400');
+
+                    const result = await apiCall('/network/scan', 'POST', { ip_range: ipRange });
+
+                    if (result.status === 'started') {
+                        addConsoleMessage('Scan started successfully. Monitoring progress...', 'text-blue-400');
+
+                        // Start polling for progress
+                        this.startProgressPolling(scanBtn);
+                    } else {
+                        throw new Error(result.error || 'Failed to start scan');
+                    }
+
+                } catch (error) {
+                    addConsoleMessage(`Network scan failed: ${error.message}`, 'text-red-400');
+                    if (scanBtn) {
+                        scanBtn.disabled = false;
+                        scanBtn.textContent = 'SCAN';
+                    }
+                }
+            }
+
+            startProgressPolling(scanBtn) {
+                let lastProgress = 0;
+
+                this.scanProgressInterval = setInterval(async () => {
+                    try {
+                        const progress = await apiCall('/scan/progress');
+
+                        // Update button text with progress
+                        if (scanBtn) {
+                            if (progress.status === 'running') {
+                                scanBtn.textContent = `SCANNING... ${progress.progress}%`;
+                            } else if (progress.status === 'completed') {
+                                scanBtn.textContent = 'COMPLETED ✓';
+                                scanBtn.disabled = false;
+                                clearInterval(this.scanProgressInterval);
+                                this.scanProgressInterval = null;
+
+                                addConsoleMessage(`Network scan completed. Found ${progress.total_found} devices.`, 'text-green-400');
+
+                                // Update scan results chart
+                                if (typeof updateScanResultsChart === 'function') {
+                                    updateScanResultsChart();
+                                }
+
+                                // Update system metrics
+                                updateSystemMetrics();
+
+                            } else if (progress.status === 'failed') {
+                                scanBtn.textContent = 'FAILED ✗';
+                                scanBtn.disabled = false;
+                                clearInterval(this.scanProgressInterval);
+                                this.scanProgressInterval = null;
+
+                                addConsoleMessage(`Network scan failed: ${progress.message}`, 'text-red-400');
+                            }
+                        }
+
+                        // Show progress messages
+                        if (progress.message && progress.message !== lastProgress) {
+                            addConsoleMessage(`[${progress.progress}%] ${progress.message}`, 'text-gray-400');
+                            lastProgress = progress.message;
+                        }
+
+                    } catch (error) {
+                        console.error('Progress polling error:', error);
+                        // Continue polling on error
+                    }
+                }, 1000); // Poll every second
+            }
+            
+            startAutoRefresh() {
+                // Auto-refresh every 30 seconds
+                this.autoRefreshInterval = setInterval(() => {
+                    if (!this.isRefreshing) {
+                        this.loadInterfaces();
+                    }
+                }, 30000);
+            }
+            
+            stopAutoRefresh() {
+                if (this.autoRefreshInterval) {
+                    clearInterval(this.autoRefreshInterval);
+                    this.autoRefreshInterval = null;
+                }
+            }
+        }
+        
+        // Global network interface manager instance
+        let networkInterfaceManager = null;
+        
+        // Legacy compatibility functions
+        async function loadInterfaces() {
+            if (networkInterfaceManager) {
+                await networkInterfaceManager.loadInterfaces();
+            }
+        }
+        
+        function updateInterfaceMeta() {
+            if (networkInterfaceManager) {
+                networkInterfaceManager.updateInterfaceDetails();
+            }
+        }
+        
+        // Initialize Charts with Live Data
+        async function initCharts() {
+            // If Chart.js failed to load, skip charts entirely
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js not loaded; skipping chart initialization');
+                return;
+            }
+            // Scan Results Chart - Enhanced with interactivity
+            const scanResultsCtx = document.getElementById('scanResultsChart').getContext('2d');
+            try {
+                const chartData = await apiCall('/charts/scan_results');
+                scanResultsChart = new Chart(scanResultsCtx, {
+                    type: 'doughnut',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 12
+                                    },
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
                             },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#00ff41',
+                                bodyColor: '#ffffff',
+                                borderColor: '#00ff41',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                displayColors: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
                                 }
                             }
                         },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true,
+                            duration: 1000,
+                            easing: 'easeOutQuart'
+                        },
+                        hover: {
+                            mode: 'nearest',
+                            intersect: true
                         }
                     }
-                }
-            });
+                });
             
-            // Vulnerability Chart
-            const vulnerabilityCtx = document.getElementById('vulnerabilityChart').getContext('2d');
-            new Chart(vulnerabilityCtx, {
-                type: 'radar',
-                data: {
-                    labels: ['Remote Code', 'Privilege Escalation', 'Information Disclosure', 'Denial of Service', 'Authentication Bypass'],
-                    datasets: [{
-                        label: 'Vulnerability Level',
-                        data: [85, 60, 45, 75, 30],
-                        backgroundColor: 'rgba(192, 0, 255, 0.2)',
-                        borderColor: '#c000ff',
-                        pointBackgroundColor: '#ff00de',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#ff00de'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: {
-                                color: 'rgba(192, 0, 255, 0.2)'
-                            },
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.2)'
-                            },
-                            pointLabels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code',
-                                    size: 10
-                                }
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                backdropColor: 'transparent',
-                                font: {
-                                    family: 'Fira Code'
+            } catch (error) {
+                // Fallback to static data if API fails
+                scanResultsChart = new Chart(scanResultsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Active Hosts', 'Inactive Hosts', 'Vulnerable'],
+                        datasets: [{
+                            data: [12, 3, 5],
+                            backgroundColor: ['#00ff41', '#ff00de', '#c000ff']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#c9d1d9',
+                                    font: { family: 'Fira Code' }
                                 }
                             }
                         }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
+                    } // <-- Added closing brace for options
+                });
+            }
+            
+            // Port Status Chart - Enhanced with advanced styling
+            const portStatusCtx = document.getElementById('portStatusChart').getContext('2d');
+            try {
+                const chartData = await apiCall('/charts/port_status');
+                portStatusChart = new Chart(portStatusCtx, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(192, 0, 255, 0.1)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 11
+                                    },
+                                    callback: function(value) {
+                                        return value + ' ports';
+                                    }
+                                },
+                                border: {
+                                    display: false
                                 }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(192, 0, 255, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 10
+                                    },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                },
+                                border: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                titleColor: '#00ff41',
+                                bodyColor: '#ffffff',
+                                borderColor: '#ff00de',
+                                borderWidth: 1,
+                                cornerRadius: 6,
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        return `Service: ${context[0].label}`;
+                                    },
+                                    label: function(context) {
+                                        const value = context.parsed.y;
+                                        return `Open Ports: ${value}`;
+                                    }
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeOutBounce',
+                            delay: function(context) {
+                                return context.dataIndex * 200;
+                            }
+                        },
+                        hover: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        barThickness: 40,
+                        maxBarThickness: 50
+                    }
+                });
+            
+            } catch (error) {
+                // Fallback to static data
+                portStatusChart = new Chart(portStatusCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['SSH', 'HTTP', 'HTTPS', 'FTP', 'SMB', 'RDP'],
+                        datasets: [{
+                            label: 'Port Status',
+                            data: [22, 80, 443, 21, 445, 3389],
+                            backgroundColor: ['#c000ff', '#ff00de', '#00ff41', '#c000ff', '#ff00de', '#00ff41']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(192, 0, 255, 0.1)' }, ticks: { color: '#c9d1d9', font: { family: 'Fira Code' }}},
+                            x: { grid: { color: 'rgba(192, 0, 255, 0.1)' }, ticks: { color: '#c9d1d9', font: { family: 'Fira Code' }}}
+                        },
+                        plugins: { legend: { display: false }}
+                    }
+                });
+            }
+            
+            // Vulnerability Chart - Enhanced radar with advanced styling
+            const vulnerabilityCtx = document.getElementById('vulnerabilityChart').getContext('2d');
+            try {
+                const chartData = await apiCall('/charts/vulnerability');
+                vulnerabilityChart = new Chart(vulnerabilityCtx, {
+                    type: 'radar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    color: 'rgba(192, 0, 255, 0.3)',
+                                    lineWidth: 2
+                                },
+                                grid: {
+                                    color: 'rgba(192, 0, 255, 0.2)',
+                                    lineWidth: 1
+                                },
+                                pointLabels: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 11,
+                                        weight: 'bold'
+                                    },
+                                    padding: 15
+                                },
+                                ticks: {
+                                    color: '#c9d1d9',
+                                    backdropColor: 'rgba(0, 0, 0, 0.7)',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 10
+                                    },
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return value > 0 ? value : '';
+                                    }
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 10
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 12
+                                    },
+                                    usePointStyle: true,
+                                    pointStyle: 'rectRounded'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                titleColor: '#ff00de',
+                                bodyColor: '#ffffff',
+                                borderColor: '#ff00de',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        return `Vulnerability Type: ${context[0].label}`;
+                                    },
+                                    label: function(context) {
+                                        const value = context.parsed.r;
+                                        const severity = value >= 7 ? 'HIGH' : value >= 4 ? 'MEDIUM' : 'LOW';
+                                        return `Count: ${value} (Severity: ${severity})`;
+                                    }
+                                }
+                            }
+                        },
+                        elements: {
+                            point: {
+                                radius: 6,
+                                hoverRadius: 10,
+                                borderWidth: 2,
+                                hoverBorderWidth: 3
+                            },
+                            line: {
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.2
+                            }
+                        },
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeOutElastic'
+                        },
+                        hover: {
+                            mode: 'dataset',
+                            intersect: false
+                        }
+                    }
+                });
+            } catch (error) {
+                // Fallback to static data
+                vulnerabilityChart = new Chart(vulnerabilityCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['RCE', 'PrivEsc', 'InfoLeak', 'DoS', 'AuthBypass'],
+                        datasets: [{
+                            label: 'Vulnerability Level',
+                            data: [7, 5, 8, 4, 6],
+                            backgroundColor: 'rgba(192, 0, 255, 0.2)',
+                            borderColor: '#c000ff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                angleLines: { color: 'rgba(192, 0, 255, 0.2)' },
+                                grid: { color: 'rgba(192, 0, 255, 0.2)' },
+                                pointLabels: { color: '#c9d1d9', font: { family: 'Fira Code', size: 10 }},
+                                ticks: { color: '#c9d1d9', backdropColor: 'transparent', font: { family: 'Fira Code' }}
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#c9d1d9', font: { family: 'Fira Code' }}
                             }
                         }
                     }
-                }
-            });
+                });
+            }
             
             // Attack Progress Chart
             const attackProgressCtx = document.getElementById('attackProgressChart').getContext('2d');
@@ -1436,177 +2309,400 @@
                 }
             });
             
-            // System Metrics Chart
+            // Professional System Metrics Chart - Enhanced with real-time data
             const systemMetricsCtx = document.getElementById('systemMetricsChart').getContext('2d');
-            new Chart(systemMetricsCtx, {
-                type: 'line',
-                data: {
-                    labels: ['10:00', '10:15', '10:30', '10:45', '11:00', '11:15', '11:30'],
-                    datasets: [
-                        {
-                            label: 'CPU Usage',
-                            data: [45, 52, 38, 65, 72, 58, 62],
-                            borderColor: '#c000ff',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+            try {
+                const chartData = await apiCall('/charts/system_metrics');
+                systemMetricsChart = new Chart(systemMetricsCtx, {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
                         },
-                        {
-                            label: 'Memory Usage',
-                            data: [38, 42, 35, 48, 52, 45, 50],
-                            borderColor: '#ff00de',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    color: 'rgba(192, 0, 255, 0.1)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 10
+                                    },
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                },
+                                border: {
+                                    display: false
+                                }
                             },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
+                            x: {
+                                grid: {
+                                    color: 'rgba(192, 0, 255, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 10
+                                    }
+                                },
+                                border: {
+                                    display: false
                                 }
                             }
                         },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    color: '#c9d1d9',
+                                    font: {
+                                        family: 'Fira Code',
+                                        size: 10
+                                    },
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    padding: 15
+                                }
                             },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                titleColor: '#00ff41',
+                                bodyColor: '#ffffff',
+                                borderColor: '#00ff41',
+                                borderWidth: 1,
+                                cornerRadius: 6,
+                                displayColors: true,
+                                callbacks: {
+                                    title: function(context) {
+                                        return 'Time: ' + context[0].label;
+                                    },
+                                    label: function(context) {
+                                        const label = context.dataset.label;
+                                        const value = context.parsed.y.toFixed(1);
+                                        const status = value > 80 ? 'CRITICAL' : value > 60 ? 'HIGH' : value > 40 ? 'MEDIUM' : 'NORMAL';
+                                        return `${label}: ${value}% (${status})`;
+                                    }
                                 }
                             }
+                        },
+                        elements: {
+                            point: {
+                                radius: 3,
+                                hoverRadius: 6,
+                                borderWidth: 2,
+                                hoverBorderWidth: 3
+                            },
+                            line: {
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutQuart'
+                        },
+                        hover: {
+                            mode: 'nearest',
+                            intersect: false
                         }
+                    }
+                });
+            } catch (error) {
+                // Fallback to static data if API fails
+                systemMetricsChart = new Chart(systemMetricsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['10:00', '10:15', '10:30', '10:45', '11:00', '11:15', '11:30'],
+                        datasets: [
+                            {
+                                label: 'CPU Usage (%)',
+                                data: [45, 52, 38, 65, 72, 58, 62],
+                                borderColor: '#c000ff',
+                                backgroundColor: 'rgba(192, 0, 255, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true,
+                                pointBackgroundColor: '#c000ff',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 3,
+                                pointHoverRadius: 6
+                            },
+                            {
+                                label: 'Memory Usage (%)',
+                                data: [38, 42, 35, 48, 52, 45, 50],
+                                borderColor: '#ff00de',
+                                backgroundColor: 'rgba(255, 0, 222, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.4,
+                                fill: true,
+                                pointBackgroundColor: '#ff00de',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 3,
+                                pointHoverRadius: 6
+                            }
+                        ]
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y + '%';
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
 
-            // Financial Chart
+            // Financial Chart - Professional Trading Style
             const financialCtx = document.getElementById('financialChart').getContext('2d');
             new Chart(financialCtx, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    labels: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
                     datasets: [{
                         label: 'Security Index',
                         data: [44.291, 38.417, 12.002, 20.556, 44.870, 38.500, 42.100],
                         borderColor: '#00ff41',
-                        backgroundColor: 'rgba(0, 255, 65, 0.1)',
-                        tension: 0.4,
-                        fill: true
+                        backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true,
+                        pointBackgroundColor: '#00ff41',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#c9d1d9',
-                                font: {
-                                    family: 'Fira Code'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Candlestick Chart
-            const candlestickCtx = document.getElementById('candlestickChart').getContext('2d');
-            new Chart(candlestickCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'Network Activity',
-                        data: [8.785, 4.174, 8.510, 5.415, 2.405, 2.175, 4.479],
-                        backgroundColor: [
-                            '#00ff41', '#ff00de', '#00ff41', '#c000ff', 
-                            '#ff00de', '#ff00de', '#00ff41'
-                        ],
-                        borderColor: '#000',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
                     scales: {
                         y: {
+                            beginAtZero: false,
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.1)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(3);
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         },
                         x: {
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.05)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         }
                     },
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#00ff41',
+                            bodyColor: '#ffffff',
+                            borderColor: '#00ff41',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            displayColors: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    return 'Index: ' + context.parsed.y.toFixed(3);
+                                }
+                            }
                         }
                     }
                 }
             });
 
-            // Performance Chart
+            // Professional OHLC-Style Chart - Enhanced with real data and interactivity
+            const candlestickCtx = document.getElementById('candlestickChart').getContext('2d');
+            const candlestickChart = new Chart(candlestickCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['09:30', '10:30', '11:30', '12:30', '13:30', '14:30', '15:30'],
+                    datasets: [{
+                        label: 'Network Activity',
+                        data: [8.785, 4.174, 8.510, 5.415, 2.405, 2.175, 4.479],
+                        backgroundColor: function(context) {
+                            const value = context.parsed.y;
+                            const prevValue = context.dataIndex > 0 ?
+                                context.dataset.data[context.dataIndex - 1] : value;
+                            return value >= prevValue ? '#00ff41' : '#ff00de';
+                        },
+                        borderColor: function(context) {
+                            const value = context.parsed.y;
+                            const prevValue = context.dataIndex > 0 ?
+                                context.dataset.data[context.dataIndex - 1] : value;
+                            return value >= prevValue ? '#00cc33' : '#cc0099';
+                        },
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        borderSkipped: false,
+                        hoverBorderWidth: 3,
+                        hoverBorderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(192, 0, 255, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#c9d1d9',
+                                font: {
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(2) + 'K';
+                                }
+                            },
+                            border: {
+                                display: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(192, 0, 255, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#c9d1d9',
+                                font: {
+                                    family: 'Fira Code',
+                                    size: 10
+                                }
+                            },
+                            border: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            titleColor: '#00ff41',
+                            bodyColor: '#ffffff',
+                            borderColor: '#00ff41',
+                            borderWidth: 1,
+                            cornerRadius: 6,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const prevValue = context.dataIndex > 0 ?
+                                        context.dataset.data[context.dataIndex - 1] : value;
+                                    const change = ((value - prevValue) / prevValue * 100).toFixed(1);
+                                    const direction = value >= prevValue ? '↗' : '↘';
+                                    return `Activity: ${value.toFixed(3)}K packets/sec ${direction} ${Math.abs(change)}%`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1200,
+                        easing: 'easeOutBounce',
+                        delay: function(context) {
+                            return context.dataIndex * 150;
+                        }
+                    },
+                    onClick: function(event, elements) {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const value = this.data.datasets[0].data[index];
+                            const time = this.data.labels[index];
+
+                            addConsoleMessage(`Network activity spike detected at ${time}: ${value.toFixed(3)}K packets/sec`, 'text-blue-400');
+                            addConsoleMessage('Analyzing traffic patterns...', 'text-gray-400');
+
+                            // Simulate analysis
+                            setTimeout(() => {
+                                const analysis = value > 6 ? 'High traffic - possible attack or data transfer' :
+                                               value > 4 ? 'Moderate traffic - normal network activity' :
+                                               'Low traffic - minimal network usage';
+                                addConsoleMessage(`Analysis: ${analysis}`, 'text-green-400');
+                            }, 1000);
+                        }
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true,
+                        onHover: function(event, elements) {
+                            event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                        }
+                    }
+                }
+            });
+
+            // Professional Multi-Line Performance Chart
             const performanceCtx = document.getElementById('performanceChart').getContext('2d');
             new Chart(performanceCtx, {
                 type: 'line',
@@ -1614,54 +2710,111 @@
                     labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '00:00'],
                     datasets: [
                         {
-                            label: 'Response Time',
+                            label: 'Response Time (ms)',
                             data: [5.415, 4.183, 4.178, 6.861, 5.200, 4.500, 5.100],
                             borderColor: '#c000ff',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(192, 0, 255, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            fill: false,
+                            pointBackgroundColor: '#c000ff',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         },
                         {
-                            label: 'Throughput',
+                            label: 'Throughput (Gbps)',
                             data: [2.405, 2.175, 4.479, 5.990, 6.200, 5.500, 4.800],
                             borderColor: '#00ff41',
-                            backgroundColor: 'transparent',
-                            tension: 0.4
+                            backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.2,
+                            fill: false,
+                            pointBackgroundColor: '#00ff41',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     scales: {
                         y: {
+                            beginAtZero: false,
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.1)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(2);
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         },
                         x: {
                             grid: {
-                                color: 'rgba(192, 0, 255, 0.1)'
+                                color: 'rgba(192, 0, 255, 0.05)',
+                                drawBorder: false
                             },
                             ticks: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
                                 }
+                            },
+                            border: {
+                                display: false
                             }
                         }
                     },
                     plugins: {
                         legend: {
+                            position: 'top',
+                            align: 'end',
                             labels: {
                                 color: '#c9d1d9',
                                 font: {
-                                    family: 'Fira Code'
+                                    family: 'Fira Code',
+                                    size: 10
+                                },
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#00ff41',
+                            bodyColor: '#ffffff',
+                            borderColor: '#00ff41',
+                            borderWidth: 1,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    const label = context.dataset.label;
+                                    const value = context.parsed.y.toFixed(3);
+                                    return label + ': ' + value;
                                 }
                             }
                         }
@@ -1755,79 +2908,386 @@
         }
         
         // Initialize everything when the page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            initMatrixRain();
-            initDataStream();
-            initParticles();
-            initCharts();
-            initSatelliteMap();
-            
-            // Add sample console output
-            const consoleOutput = document.getElementById('console-output');
-            const commands = [
-                {text: "> Scanning network 192.168.1.0/24...", color: "text-green-400"},
-                {text: "> Found 12 active hosts", color: "text-green-400"},
-                {text: "> 5 hosts identified as vulnerable", color: "text-yellow-400"},
-                {text: "> Initiating port scan on 192.168.1.10...", color: "text-blue-400"},
-                {text: "> Open ports: 22(SSH), 80(HTTP), 443(HTTPS), 21(FTP)", color: "text-green-400"},
-                {text: "> Vulnerability scan completed", color: "text-blue-400"},
-                {text: "> 3 high severity vulnerabilities found", color: "text-red-400"},
-                {text: "> Neural network analysis complete", color: "text-purple-400"},
-                {text: "> Ready for penetration testing", color: "text-green-400"}
-            ];
-            
-            let i = 0;
-            const interval = setInterval(() => {
-                if (i < commands.length) {
-                    const div = document.createElement('div');
-                    div.className = commands[i].color;
-                    div.textContent = commands[i].text;
-                    consoleOutput.appendChild(div);
-                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
-                    i++;
-                } else {
-                    clearInterval(interval);
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Always attach handlers, even if other inits fail
+            try { setupGenericButtonHandlers(); } catch (e) { console.error('setupGenericButtonHandlers failed', e); }
+            try { setupApiKeyHandlers(); } catch (e) { console.error('setupApiKeyHandlers failed', e); }
+
+            // Run optional visuals in isolation so errors don't block UI
+            try { initMatrixRain(); } catch (e) { console.warn('initMatrixRain failed', e); }
+            try { initDataStream(); } catch (e) { console.warn('initDataStream failed', e); }
+            try { initParticles(); } catch (e) { console.warn('initParticles failed', e); }
+            try { await initCharts(); } catch (e) { console.warn('initCharts failed', e); }
+            try { initSatelliteMap(); } catch (e) { console.warn('initSatelliteMap failed', e); }
+
+            // Initialize Network Interface Manager resiliently
+            try {
+                window.networkInterfaceManager = new NetworkInterfaceManager();
+                try { await window.networkInterfaceManager.loadInterfaces(); } catch (e) { console.warn('loadInterfaces failed', e); }
+            } catch (e) {
+                console.error('NetworkInterfaceManager init failed', e);
+            }
+
+            // Restore API key if present
+            try {
+                const savedApiKey = sessionStorage.getItem('cyber_matrix_api_key');
+                if (savedApiKey) {
+                    currentApiKey = savedApiKey;
+                    const inputEl = document.getElementById('api-key-input');
+                    if (inputEl) {
+                        inputEl.value = '••••••••••••••••';
+                        inputEl.type = 'password';
+                    }
+                    updateApiStatus(true);
+                    addConsoleMessage('API key restored from session', 'text-blue-400');
+                    if (window.networkInterfaceManager) {
+                        try { await window.networkInterfaceManager.loadInterfaces(); } catch (e) {}
+                    }
                 }
-            }, 800);
+            } catch (e) { console.warn('API key restore failed', e); }
+
+            // Start periodic updates
+            try { updateSystemMetrics(); } catch (e) { console.warn('updateSystemMetrics failed', e); }
+            try { setInterval(updateChartsData, 10000); } catch (e) { console.warn('setInterval(updateChartsData) failed', e); }
+
+            // Initial console message and sample output are non-critical
+            try {
+                addConsoleMessage('CYBER-MATRIX v8.0 initialized successfully', 'text-green-400');
+                addConsoleMessage('All systems online and ready', 'text-blue-400');
+            } catch (e) { /* ignore */ }
+
+            try {
+                const consoleOutput = document.getElementById('console-output');
+                const commands = [
+                    {text: "> Scanning network 192.168.1.0/24...", color: "text-green-400"},
+                    {text: "> Found 12 active hosts", color: "text-green-400"},
+                    {text: "> 5 hosts identified as vulnerable", color: "text-yellow-400"},
+                    {text: "> Initiating port scan on 192.168.1.10...", color: "text-blue-400"},
+                    {text: "> Open ports: 22(SSH), 80(HTTP), 443(HTTPS), 21(FTP)", color: "text-green-400"},
+                    {text: "> Vulnerability scan completed", color: "text-blue-400"},
+                    {text: "> 3 high severity vulnerabilities found", color: "text-red-400"},
+                    {text: "> Neural network analysis complete", color: "text-purple-400"},
+                    {text: "> Ready for penetration testing", color: "text-green-400"}
+                ];
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (!consoleOutput) { clearInterval(interval); return; }
+                    if (i < commands.length) {
+                        const div = document.createElement('div');
+                        div.className = commands[i].color;
+                        div.textContent = commands[i].text;
+                        consoleOutput.appendChild(div);
+                        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                        i++;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 800);
+            } catch (e) { /* ignore */ }
+
+            // Button Event Handlers (specific actions)
+            try { setupButtonHandlers(); } catch (e) { console.error('setupButtonHandlers failed', e); }
+        });
+        
+        // Setup button event handlers
+        function setupButtonHandlers() {
+            // Network scan is now handled by NetworkInterfaceManager class
             
-            // Add interactivity to buttons
+            // Port Scan Button
+            const portScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('PORT SCAN'));
+            if (portScanBtn) {
+                portScanBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Initiating port scan...', 'text-blue-400');
+                    
+                    try {
+                        const targetIp = document.querySelector('input[placeholder="192.168.1.10"]').value;
+                        const portRange = document.querySelector('input[placeholder="1-1000"]').value || '1-1000';
+                        
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+                        
+                        const result = await apiCall('/port/scan', 'POST', { target_ip: targetIp, port_range: portRange });
+                        addConsoleMessage(`Port scan completed. Found ${result.total_open} open ports on ${targetIp}.`, 'text-green-400');
+                        
+                        // Update port status chart
+                        if (portStatusChart) {
+                            const chartData = await apiCall('/charts/port_status');
+                            portStatusChart.data = chartData;
+                            portStatusChart.update();
+                        }
+                    } catch (error) {
+                        addConsoleMessage(`Port scan failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Vulnerability Scan Button
+            const vulnScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('VULNERABILITY SCAN'));
+            if (vulnScanBtn) {
+                vulnScanBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Initiating vulnerability scan...', 'text-blue-400');
+                    
+                    try {
+                        const targetIp = document.querySelector('input[placeholder="192.168.1.10"]').value;
+                        const intensity = document.querySelector('select option:checked').value || 'medium';
+                        
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+                        
+                        const result = await apiCall('/vulnerability/scan', 'POST', { target_ip: targetIp, intensity: intensity });
+                        addConsoleMessage(`Vulnerability scan completed. Found ${result.total_found} vulnerabilities on ${targetIp}.`, 'text-green-400');
+                        
+                        // Update vulnerability chart
+                        if (vulnerabilityChart) {
+                            const chartData = await apiCall('/charts/vulnerability');
+                            vulnerabilityChart.data = chartData;
+                            vulnerabilityChart.update();
+                        }
+                    } catch (error) {
+                        addConsoleMessage(`Vulnerability scan failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Hydra Attack Button
+            const hydraBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('INITIATE ATTACK'));
+            if (hydraBtn) {
+                hydraBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Initiating Hydra brute force simulation...', 'text-yellow-400');
+
+                    try {
+                        const targetIp = this.closest('div').querySelector('input[placeholder="192.168.1.10"]').value;
+                        const protocol = this.closest('div').querySelector('select').value || 'ssh';
+
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+
+                        const result = await apiCall('/attack/hydra', 'POST', { target_ip: targetIp, protocol: protocol });
+
+                        if (result.status === 'simulation_success') {
+                            addConsoleMessage(`Hydra simulation completed: ${result.message}`, 'text-yellow-400');
+
+                            // Show simulation details
+                            if (result.simulation_details) {
+                                Object.values(result.simulation_details).forEach(phase => {
+                                    if (phase !== 'simulation_completed') {
+                                        addConsoleMessage(`  ${phase}`, 'text-gray-400');
+                                    }
+                                });
+                            }
+
+                            // Show warnings
+                            if (result.warning) {
+                                addConsoleMessage(`WARNING: ${result.warning}`, 'text-orange-400');
+                            }
+
+                            // Show recommendations
+                            if (result.recommendations) {
+                                addConsoleMessage('Recommendations:', 'text-blue-400');
+                                result.recommendations.forEach(rec => {
+                                    addConsoleMessage(`  • ${rec}`, 'text-blue-400');
+                                });
+                            }
+                        } else {
+                            addConsoleMessage(`Hydra simulation failed: ${result.error}`, 'text-red-400');
+                        }
+                    } catch (error) {
+                        addConsoleMessage(`Hydra attack failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Metasploit Button
+            const metasploitBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('EXECUTE EXPLOIT'));
+            if (metasploitBtn) {
+                metasploitBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Executing Metasploit exploit simulation...', 'text-yellow-400');
+
+                    try {
+                        const targetIp = this.closest('div').querySelector('input[placeholder="192.168.1.10"]').value;
+                        const exploit = this.closest('div').querySelector('select').value || 'generic';
+
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+
+                        const result = await apiCall('/attack/metasploit', 'POST', { target_ip: targetIp, exploit: exploit });
+
+                        if (result.status === 'simulation_success') {
+                            addConsoleMessage(`Metasploit simulation completed: ${result.message}`, 'text-yellow-400');
+
+                            // Show exploit details
+                            if (result.exploit_details) {
+                                const details = result.exploit_details;
+                                addConsoleMessage(`Exploit: ${details.exploit_name}`, 'text-gray-400');
+                                addConsoleMessage(`Risk Level: ${details.risk_assessment.level.toUpperCase()} (CVSS: ${details.risk_assessment.cvss})`, 'text-red-400');
+                                addConsoleMessage(`Description: ${details.risk_assessment.description}`, 'text-gray-400');
+                            }
+
+                            // Show simulation phases
+                            if (result.simulation_details) {
+                                Object.values(result.simulation_details).forEach(phase => {
+                                    if (phase !== 'simulation_completed') {
+                                        addConsoleMessage(`  ${phase}`, 'text-gray-400');
+                                    }
+                                });
+                            }
+
+                            // Show warnings
+                            if (result.warning) {
+                                addConsoleMessage(`WARNING: ${result.warning}`, 'text-orange-400');
+                            }
+
+                            // Show recommendations
+                            if (result.recommendations) {
+                                addConsoleMessage('Recommendations:', 'text-blue-400');
+                                result.recommendations.forEach(rec => {
+                                    addConsoleMessage(`  • ${rec}`, 'text-blue-400');
+                                });
+                            }
+                        } else {
+                            addConsoleMessage(`Metasploit simulation failed: ${result.error}`, 'text-red-400');
+                        }
+                    } catch (error) {
+                        addConsoleMessage(`Metasploit exploit failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Console Execute Button
+            const consoleExecuteBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('EXECUTE'));
+            if (consoleExecuteBtn) {
+                consoleExecuteBtn.addEventListener('click', async function() {
+                    const commandInput = document.querySelector('input[placeholder="Enter command..."]');
+                    const command = commandInput.value.trim();
+                    
+                    if (!command) return;
+                    
+                    addVisualFeedback(this);
+                    addConsoleMessage(command, 'text-blue-400');
+                    
+                    try {
+                        const result = await apiCall('/console/execute', 'POST', { command: command });
+                        addConsoleMessage(result.output, 'text-green-400');
+                        commandInput.value = '';
+                    } catch (error) {
+                        addConsoleMessage(`Command failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+                
+                // Also handle Enter key
+                const commandInput = document.querySelector('input[placeholder="Enter command..."]');
+                if (commandInput) {
+                    commandInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            consoleExecuteBtn.click();
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Visual feedback for buttons
+        function addVisualFeedback(button) {
+            button.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                button.style.transform = '';
+            }, 150);
+        }
+        
+        // Update charts periodically
+        function updateChartsData() {
+            // Update system metrics chart
+            if (systemMetricsChart) {
+                apiCall('/charts/system_metrics').then(chartData => {
+                    systemMetricsChart.data = chartData;
+                    systemMetricsChart.update();
+                }).catch(console.error);
+            }
+            
+            // Update other charts as needed
+            updateSystemMetrics();
+        }
+        
+        // Helper function to update scan results chart
+        async function updateScanResultsChart() {
+            if (scanResultsChart) {
+                try {
+                    const chartData = await apiCall('/charts/scan_results');
+                    scanResultsChart.data = chartData;
+                    scanResultsChart.update();
+                } catch (error) {
+                    console.error('Failed to update scan results chart:', error);
+                }
+            }
+        }
+        
+        // Setup API key handlers
+        function setupApiKeyHandlers() {
+            const activateBtn = document.getElementById('activate-api-btn');
+            const generateBtn = document.getElementById('generate-api-btn');
+            const apiKeyInput = document.getElementById('api-key-input');
+            
+            if (activateBtn) {
+                activateBtn.addEventListener('click', activateApiKey);
+            }
+            
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateApiKey);
+            }
+            
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        activateApiKey();
+                    }
+                });
+            }
+        }
+        
+        // Generic button handler for remaining buttons
+        function setupGenericButtonHandlers() {
             const buttons = document.querySelectorAll('.holographic-button');
             buttons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Add a visual feedback
-                    this.style.transform = 'scale(0.95)';
-                    setTimeout(() => {
-                        this.style.transform = '';
-                    }, 150);
-                    
-                    // Add to console
-                    const action = this.textContent.trim();
-                    const div = document.createElement('div');
-                    div.className = 'text-blue-400';
-                    div.textContent = `> Executing: ${action}`;
-                    consoleOutput.appendChild(div);
-                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
-                });
+                if (!button.hasEventListener) {
+                    button.addEventListener('click', function() {
+                        addVisualFeedback(this);
+                        const action = this.textContent.trim();
+                        addConsoleMessage(`Executing: ${action}`, 'text-blue-400');
+                    });
+                    button.hasEventListener = true;
+                }
             });
             
-            // Add mouse move effect for 3D cards
-            document.addEventListener('mousemove', function(e) {
-                const cards = document.querySelectorAll('.holographic-card');
-                const centerX = window.innerWidth / 2;
-                const centerY = window.innerHeight / 2;
-                
-                cards.forEach(card => {
-                    const rect = card.getBoundingClientRect();
-                    const cardCenterX = rect.left + rect.width / 2;
-                    const cardCenterY = rect.top + rect.height / 2;
-                    
-                    const rotateX = (e.clientY - cardCenterY) / 50;
-                    const rotateY = (cardCenterX - e.clientX) / 50;
-                    
-                    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
-                });
-            });
-        });
+            // Mouse move effect for 3D cards disabled for performance
+            // document.addEventListener('mousemove', function(e) {
+            //     const cards = document.querySelectorAll('.holographic-card');
+            //     const centerX = window.innerWidth / 2;
+            //     const centerY = window.innerHeight / 2;
+            //
+            //     cards.forEach(card => {
+            //         const rect = card.getBoundingClientRect();
+            //         const cardCenterX = rect.left + rect.width / 2;
+            //         const cardCenterY = rect.top + rect.height / 2;
+            //
+            //         const rotateX = (e.clientY - cardCenterY) / 50;
+            //         const rotateY = (cardCenterX - e.clientX) / 50;
+            //
+            //         card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
+            //     });
+            // });
+        }
     </script>
 </body>
 </html>
