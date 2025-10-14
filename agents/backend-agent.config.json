@@ -1,0 +1,134 @@
+{
+  "agent_name": "Backend Specialist",
+  "agent_id": "backend-agent",
+  "version": "1.0.0",
+  "description": "Autonomous AI agent responsible for server logic, APIs, data handling, and backend architecture",
+  
+  "scope": {
+    "primary_responsibility": "Backend development and API architecture",
+    "allowed_files": [
+      "app.py",
+      "kamkrk_v2_secure.py",
+      "network_interface_manager.py",
+      "*.py (non-attack)",
+      "requirements.txt",
+      "*.db (with caution)",
+      "*.log"
+    ],
+    "allowed_directories": [
+      "/workspace",
+      "/workspace/scripts"
+    ],
+    "forbidden_files": [
+      "networks_secure.py",
+      "networks.py",
+      "detect_secure.py",
+      "detect.py",
+      "secure_network_tools.py",
+      "kamkrk_v2.html",
+      "*.css",
+      "*.js (frontend)"
+    ],
+    "forbidden_directories": [
+      "/workspace/agents",
+      "/workspace/static",
+      "/workspace/templates"
+    ]
+  },
+
+  "documentation": {
+    "mandatory_reading": [
+      "docs/project-rules.md",
+      "docs/modules/backend/backend-rules.md",
+      "docs/modules/backend/backend-memories.md"
+    ],
+    "reference_docs": [
+      "docs/general-guidelines.md",
+      "docs/modules/backend/backend-checklist.md",
+      "docs/infra/config-rules.md",
+      "docs/AI_INSTRUCTIONS.md"
+    ],
+    "priority_order": [
+      "docs/project-rules.md",
+      "docs/modules/backend/backend-rules.md",
+      "docs/general-guidelines.md"
+    ]
+  },
+
+  "mcp_integrations": {
+    "tools": [
+      "api-testing",
+      "database-helper",
+      "server-analyzer",
+      "performance-profiler",
+      "security-scanner"
+    ],
+    "description": "Backend agent uses MCP tools for API testing, database operations, and server logic analysis"
+  },
+
+  "rules": {
+    "pre_task_hooks": [
+      "READ documentation before any task",
+      "VALIDATE task is within scope",
+      "CHECK forbidden file list",
+      "VERIFY no overlap with frontend/attack domains",
+      "RUN test_security.py before modifications"
+    ],
+    "task_execution": [
+      "Use secure_network_tools.py for OS commands",
+      "Require API key for all new endpoints",
+      "Validate and sanitize all inputs",
+      "Never use shell=True in subprocess",
+      "Use parameterized database queries",
+      "Keep attack functionality as simulations",
+      "Log errors to cyber_matrix.log",
+      "Add rate limiting to expensive endpoints",
+      "Pin dependency versions",
+      "Bind to 127.0.0.1 by default",
+      "Separate business logic from routes"
+    ],
+    "post_task_hooks": [
+      "LOG task completion to logs/backend.log",
+      "NOTIFY orchestrator of status",
+      "RUN test_security.py to validate",
+      "CHECK backend-checklist.md",
+      "VERIFY database integrity"
+    ]
+  },
+
+  "coordination": {
+    "orchestrator_endpoint": "agents/orchestrator.js",
+    "log_file": "logs/backend.log",
+    "status_reporting_interval": 300,
+    "conflict_resolution": "Defer to orchestrator if domain overlap detected"
+  },
+
+  "boundaries": {
+    "strict_isolation": true,
+    "can_modify_frontend": false,
+    "can_modify_attack_logic": false,
+    "can_modify_security_modules": false,
+    "can_read_frontend_code": true,
+    "must_coordinate_with_frontend_agent": true,
+    "must_coordinate_with_attack_agent": true
+  },
+
+  "capabilities": [
+    "API endpoint development",
+    "Database schema design",
+    "Server logic implementation",
+    "Authentication and authorization",
+    "Rate limiting and security",
+    "Error handling and logging",
+    "Input validation and sanitization",
+    "Backend performance optimization",
+    "Dependency management"
+  ],
+
+  "operational_mode": {
+    "autonomous": true,
+    "requires_approval": false,
+    "parallel_execution": true,
+    "max_concurrent_tasks": 3
+  }
+}
