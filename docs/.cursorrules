@@ -1,0 +1,136 @@
+# Cursor Rules for CYBER-MATRIX v8.0 Documentation
+
+## 🚨 MANDATORY: Read Before Any Action
+
+**Before performing ANY task, you MUST:**
+
+1. Read [`AI_INSTRUCTIONS.md`](./AI_INSTRUCTIONS.md) in full
+2. Identify which module(s) your task affects
+3. Read the relevant module-specific documentation
+4. Follow the documented rules precisely
+
+## 📚 Documentation Hierarchy
+
+**Priority order (highest to lowest):**
+1. `project-rules.md` - Global rules (HIGHEST PRIORITY)
+2. Module-specific `*-rules.md` - Area-specific rules
+3. `general-guidelines.md` - Fallback guidelines (LOWEST PRIORITY)
+
+## 🎯 Quick Reference by Task
+
+| Task Type | Read These Files First |
+|-----------|----------------------|
+| Backend API work | `modules/backend/backend-rules.md` |
+| Frontend UI work | `modules/frontend/frontend-rules.md` |
+| Writing tests | `modules/testing/testing-rules.md` |
+| Config changes | `infra/config-rules.md` |
+| Deployment | `infra/deployment-rules.md` |
+| Legacy code | `modules/legacy-scripts/legacy-scripts-rules.md` |
+| Documentation | `documentation-rules.md` |
+| Anything else | `project-rules.md` + `general-guidelines.md` |
+
+## 🔒 Non-Negotiable Rules
+
+### Security (ALWAYS ENFORCE)
+- Never use `shell=True` in subprocess calls
+- Always use functions from `secure_network_tools.py`
+- Validate and sanitize ALL user inputs
+- Require API keys for protected endpoints
+- Use parameterized database queries
+
+### Testing (ALWAYS REQUIRE)
+- Run security tests before committing
+- Add tests for all new features
+- Never skip failing tests
+- Test for security vulnerabilities
+
+### Code Quality (ALWAYS MAINTAIN)
+- Follow PEP 8 style guide
+- Add docstrings to functions
+- Keep backend and frontend separated
+- Log security-relevant events
+- Remove dead code
+
+## 📖 How to Use This Documentation
+
+### Step-by-Step Process
+```
+1. Identify task → Find relevant module
+2. Read rules file → Understand requirements
+3. Read memories file → Get context
+4. Implement changes → Follow rules precisely
+5. Check checklist → Verify completeness
+6. Run validation → Ensure quality
+```
+
+### Example: Adding API Endpoint
+```
+1. Read: modules/backend/backend-rules.md
+2. Context: modules/backend/backend-memories.md
+3. Implement: Follow secure coding rules
+4. Verify: modules/backend/backend-checklist.md
+5. Test: modules/testing/testing-rules.md
+6. Commit: After tests pass
+```
+
+## ⚠️ Common Mistakes to Avoid
+
+- ❌ Skipping documentation review
+- ❌ Ignoring module-specific rules
+- ❌ Using insecure legacy code patterns
+- ❌ Committing without running tests
+- ❌ Not validating user inputs
+- ❌ Forgetting to update documentation
+
+## ✅ Before Committing
+
+Run these checks:
+```bash
+# Validate documentation (if you modified docs)
+node scripts/validate-docs.js
+
+# Run security tests (ALWAYS)
+python3 test_security.py
+
+# Check for shell=True violations
+grep -r "shell=True" *.py
+```
+
+## 🎓 Learning Resources
+
+- **Full enforcement protocol**: `AI_INSTRUCTIONS.md`
+- **Complete file index**: `index.md`
+- **Global rules**: `project-rules.md`
+- **Best practices**: `general-guidelines.md`
+- **Change history**: `CHANGELOG.md`
+
+## 🔄 When Documentation is Missing
+
+If no specific documentation exists for your task:
+1. Default to `general-guidelines.md`
+2. Check `project-rules.md` for global constraints
+3. Look for similar patterns in existing code
+4. When in doubt, ask for guidance
+
+## 📊 Documentation Status
+
+- ✅ All 22 original files integrated
+- ✅ 25 total files with enforcement headers
+- ✅ Automated validation in place
+- ✅ CI/CD workflow active
+- ✅ All smoke tests passing
+
+## 🚀 This is Your Contract
+
+By working on this project, you agree to:
+- Always read relevant documentation first
+- Follow documented rules without exception
+- Update documentation when making changes
+- Maintain security and quality standards
+- Validate your work before committing
+
+**Documentation is not optional. It is mandatory.**
+
+---
+
+*This file ensures Cursor AI always references documentation before taking action.*

@@ -1,0 +1,22 @@
+{
+  "name": "cyber-matrix",
+  "version": "8.0.0",
+  "description": "Advanced Holographic Penetration Testing Suite",
+  "scripts": {
+    "docs:validate": "node scripts/validate-docs.js",
+    "docs:test": "node test/docs-smoke.js",
+    "docs:check": "npm run docs:validate && npm run docs:test"
+  },
+  "keywords": [
+    "penetration-testing",
+    "security",
+    "network-scanning",
+    "cybersecurity",
+    "vulnerability-assessment"
+  ],
+  "author": "CYBER-MATRIX Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

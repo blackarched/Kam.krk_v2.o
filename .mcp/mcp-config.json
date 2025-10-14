@@ -1,0 +1,206 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/workspace"
+      ],
+      "description": "File operations for CYBER-MATRIX project",
+      "disabled": false,
+      "alwaysAllow": [
+        "read_file",
+        "read_multiple_files",
+        "search_files",
+        "list_directory"
+      ],
+      "env": {
+        "WORKSPACE_ROOT": "/workspace"
+      }
+    },
+    "git": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "/workspace"
+      ],
+      "description": "Git operations for version control",
+      "disabled": false,
+      "alwaysAllow": [
+        "git_status",
+        "git_diff",
+        "git_log",
+        "git_show"
+      ],
+      "env": {
+        "GIT_REPO_PATH": "/workspace"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "description": "GitHub integration for issues, PRs, and repository management",
+      "disabled": false,
+      "alwaysAllow": [
+        "list_issues",
+        "get_issue",
+        "search_repositories"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "note": "Set GITHUB_TOKEN environment variable with your GitHub personal access token"
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "description": "Web search for documentation, solutions, and security advisories",
+      "disabled": false,
+      "alwaysAllow": [
+        "brave_web_search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      },
+      "note": "Set BRAVE_API_KEY environment variable with your Brave Search API key"
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "description": "Persistent memory for context across sessions",
+      "disabled": false,
+      "alwaysAllow": [
+        "create_memory",
+        "search_memories",
+        "get_memory"
+      ],
+      "env": {
+        "MEMORY_STORAGE_PATH": "/workspace/.mcp/memory"
+      }
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "description": "Complex reasoning and planning for refactoring tasks",
+      "disabled": false,
+      "alwaysAllow": [
+        "create_sequential_thinking"
+      ]
+    },
+    "sqlite": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sqlite",
+        "/workspace/cyber_matrix.db"
+      ],
+      "description": "SQLite database inspection for cyber_matrix.db",
+      "disabled": false,
+      "alwaysAllow": [
+        "list_tables",
+        "describe_table",
+        "query"
+      ],
+      "env": {
+        "SQLITE_DB_PATH": "/workspace/cyber_matrix.db"
+      }
+    },
+    "python": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "mcp_server_python"
+      ],
+      "description": "Python code execution and analysis",
+      "disabled": false,
+      "alwaysAllow": [
+        "execute_python",
+        "analyze_code"
+      ],
+      "env": {
+        "PYTHON_PATH": "/usr/bin/python3",
+        "PYTHONPATH": "/workspace"
+      },
+      "note": "Requires: pip install mcp-server-python"
+    }
+  },
+  "projectSettings": {
+    "name": "CYBER-MATRIX-v8.0",
+    "workspace": "/workspace",
+    "securityMode": "strict",
+    "autoLoadServers": true,
+    "serverHealthCheck": true,
+    "logLevel": "info"
+  },
+  "securityPolicies": {
+    "filesystem": {
+      "allowedPaths": ["/workspace"],
+      "deniedPaths": [
+        "/workspace/node_modules",
+        "/workspace/__pycache__",
+        "/workspace/.git/objects",
+        "/workspace/venv"
+      ],
+      "requireConfirmation": {
+        "write": false,
+        "delete": true,
+        "move": false
+      }
+    },
+    "git": {
+      "requireConfirmation": {
+        "commit": false,
+        "push": true,
+        "merge": true,
+        "rebase": true
+      },
+      "preventForce": true
+    },
+    "python": {
+      "allowedModules": [
+        "os",
+        "sys",
+        "json",
+        "re",
+        "subprocess",
+        "pathlib",
+        "sqlite3"
+      ],
+      "deniedOperations": [
+        "eval",
+        "exec with shell=True",
+        "system calls outside workspace"
+      ]
+    }
+  },
+  "integrations": {
+    "documentation": {
+      "enforceRules": true,
+      "checkBeforeCodeChange": true,
+      "rulesLocation": "/workspace/docs/AI_INSTRUCTIONS.md"
+    },
+    "testing": {
+      "runBeforeCommit": false,
+      "securityTestsRequired": true,
+      "testCommand": "python3 test_security.py"
+    },
+    "validation": {
+      "docsValidation": "node scripts/validate-docs.js",
+      "docsSmoke": "node test/docs-smoke.js"
+    }
+  }
+}

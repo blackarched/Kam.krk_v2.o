@@ -1,0 +1,116 @@
+name: Validate Documentation
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'cursor/**'
+    paths:
+      - 'docs/**'
+      - 'scripts/validate-docs.js'
+      - '.github/workflows/validate-docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'scripts/validate-docs.js'
+      - '.github/workflows/validate-docs.yml'
+
+jobs:
+  validate:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Make validation script executable
+        run: chmod +x scripts/validate-docs.js
+      
+      - name: Run documentation validation
+        run: node scripts/validate-docs.js
+      
+      - name: Check for required files
+        run: |
+          echo "Checking for critical documentation files..."
+          if [ ! -f "docs/AI_INSTRUCTIONS.md" ]; then
+            echo "❌ Missing: docs/AI_INSTRUCTIONS.md"
+            exit 1
+          fi
+          if [ ! -f "docs/project-rules.md" ]; then
+            echo "❌ Missing: docs/project-rules.md"
+            exit 1
+          fi
+          if [ ! -f "docs/general-guidelines.md" ]; then
+            echo "❌ Missing: docs/general-guidelines.md"
+            exit 1
+          fi
+          if [ ! -f "docs/index.md" ]; then
+            echo "❌ Missing: docs/index.md"
+            exit 1
+          fi
+          echo "✅ All critical files present"
+      
+      - name: Verify AI instruction headers
+        run: |
+          echo "Verifying AI instruction headers..."
+          missing_headers=0
+          
+          # Find all markdown files in docs/ except exempted ones
+          while IFS= read -r file; do
+            basename=$(basename "$file")
+            
+            # Skip exempted files
+            if [ "$basename" = "index.md" ] || [ "$basename" = "CHANGELOG.md" ]; then
+              continue
+            fi
+            
+            # Check if file starts with the AI instruction comment
+            if ! head -n 1 "$file" | grep -q "<!-- AI ASSISTANT INSTRUCTION:"; then
+              echo "❌ Missing AI instruction header: $file"
+              missing_headers=$((missing_headers + 1))
+            fi
+          done < <(find docs -name "*.md" -type f)
+          
+          if [ $missing_headers -gt 0 ]; then
+            echo "❌ Found $missing_headers file(s) without AI instruction headers"
+            exit 1
+          fi
+          
+          echo "✅ All documentation files have proper headers"
+      
+      - name: Generate validation report
+        if: always()
+        run: |
+          echo "## Documentation Validation Report" > $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count documentation files
+          total_docs=$(find docs -name "*.md" -type f | wc -l)
+          echo "**Total documentation files:** $total_docs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # List module documentation
+          echo "### Module Documentation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: $(find docs/modules/backend -name "*.md" 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: $(find docs/modules/frontend -name "*.md" 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          echo "- Testing: $(find docs/modules/testing -name "*.md" 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          echo "- Legacy Scripts: $(find docs/modules/legacy-scripts -name "*.md" 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          echo "- Infrastructure: $(find docs/infra -name "*.md" 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "### ✅ Validation Status: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Validation Status: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
