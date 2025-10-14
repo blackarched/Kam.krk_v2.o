@@ -1,58 +1,770 @@
-# Cursor Rules for MCP-Enhanced Development
+# Enhanced Cursor Rules for CYBER-MATRIX v8.0 with MCP Integration
 
-## MCP-First Development Protocol
+## 🎯 MANDATORY: MCP-First Development Protocol
 
-### Before ANY code modification:
-1. Use filesystem MCP to read docs/AI_INSTRUCTIONS.md
-2. Identify affected module
-3. Read module-specific documentation via MCP
-4. Use sequential-thinking MCP to plan changes
-5. Remember key decisions with memory MCP
+**CRITICAL**: This file defines absolute control for all AI assistant behavior in CYBER-MATRIX v8.0.
+All Cursor AI, GitHub Copilot, and other AI assistants MUST follow these rules without exception.
 
-### Priority Order (always enforce):
-1. docs/project-rules.md (read via MCP filesystem)
-2. Module-specific docs (read via MCP filesystem)
-3. docs/general-guidelines.md (read via MCP filesystem)
+---
 
-### MCP Tools Usage:
+## 🚨 STOP AND READ FIRST - Zero-Tolerance Enforcement
 
-**Filesystem MCP:**
-- Read all documentation before changes
-- Search codebase for patterns
-- Batch file operations when possible
+### Before ANY code modification, you MUST:
 
-**Git MCP:**
-- Check git status before commits
-- Review git log for context
-- Verify changes with git diff
+1. ✅ **Use filesystem MCP** to read `docs/AI_INSTRUCTIONS.md` (MANDATORY)
+2. ✅ **Identify affected module** (backend/frontend/testing/infra/legacy)
+3. ✅ **Use filesystem MCP** to read module-specific documentation
+4. ✅ **Use sequential-thinking MCP** to plan changes with security in mind
+5. ✅ **Use memory MCP** to remember key decisions and project patterns
+6. ✅ **Search codebase** using filesystem MCP for similar patterns
+7. ✅ **Validate security** using git MCP to check for dangerous patterns
 
-**Memory MCP:**
-- Remember: Security rules from docs
-- Remember: Implementation decisions
-- Remember: Project patterns and conventions
+### Priority Order (ALWAYS enforce):
+1. `docs/project-rules.md` (read via filesystem MCP) - **HIGHEST AUTHORITY**
+2. Module-specific docs (read via filesystem MCP) - `docs/modules/{module}/{module}-rules.md`
+3. `docs/general-guidelines.md` (read via filesystem MCP) - **FALLBACK**
 
-**Sequential Thinking MCP:**
-- Plan complex refactoring
-- Break down feature implementation
-- Design security-conscious architecture
+### NEVER proceed without documentation review
+- ❌ Do NOT generate code without reading relevant documentation first
+- ❌ Do NOT modify files without understanding project context
+- ❌ Do NOT skip security validation steps
+- ❌ Do NOT use shell=True or unsafe subprocess calls
+- ❌ Do NOT disable secure modules without explicit LAB_MODE authorization
 
-### Required MCP Workflow:
+---
+
+## 🔍 Project-Specific Context
+
+### Project Structure Understanding
+
+**CYBER-MATRIX v8.0 has TWO parallel implementations:**
+
+#### 🔒 SECURE Modules (DEFAULT - Always use these)
+- `secure_network_tools.py` - Central secure library with input validation
+- `kamkrk_v2_secure.py` - WiFi/Android modules (simulated)
+- `detect_secure.py` - Device detection (simulated)
+- `networks_secure.py` - Network discovery (simulated)
+
+#### ⚠️ INSECURE Modules (DANGEROUS - Only for authorized lab use)
+- `kamkrk_v2.py` - Real WiFi operations (REQUIRES LAB_MODE=true)
+- `detect.py` - Real device operations (REQUIRES LAB_MODE=true)
+- `networks.py` - Real network operations (REQUIRES LAB_MODE=true)
+
+**CRITICAL RULE**: Default to SECURE modules. Never suggest or use insecure modules unless:
+1. User explicitly states they are in an authorized lab environment
+2. LAB_MODE=true is verified in environment
+3. User confirms they have written permission to test the target network
+
+---
+
+## 📋 MCP-Enhanced Workflow (Step-by-Step)
+
+### Workflow 1: Adding a New Feature
 
 ```
-User Request → Read Docs (MCP) → Plan (Sequential Thinking) → 
-Search Code (MCP) → Remember Decisions (MCP) → Implement → 
-Validate (Git Diff MCP) → Test
+1. User requests feature → 
+2. Use filesystem MCP: Read docs/AI_INSTRUCTIONS.md →
+3. Determine module: backend/frontend/testing/etc. →
+4. Use filesystem MCP: Read docs/modules/{module}/{module}-rules.md →
+5. Use filesystem MCP: Read docs/modules/{module}/{module}-memories.md →
+6. Use filesystem MCP: Search codebase for similar patterns →
+7. Use sequential-thinking MCP: Plan implementation with security focus →
+8. Use memory MCP: Store implementation decisions →
+9. Implement following documented standards →
+10. Use filesystem MCP: Read docs/modules/{module}/{module}-checklist.md →
+11. Use git MCP: git diff to review changes →
+12. Validate against checklist →
+13. Present implementation
 ```
 
-### Security via MCP:
+### Workflow 2: Fixing a Bug
 
-Before any backend change:
-- Read docs/modules/backend/backend-rules.md
-- Search for "shell=True" violations
-- Verify secure_network_tools.py usage
-- Check against security checklist
+```
+1. User reports bug →
+2. Use filesystem MCP: Search for error pattern in logs/code →
+3. Use git MCP: Check git log for recent changes in affected area →
+4. Identify root cause and affected module →
+5. Use filesystem MCP: Read module-specific rules →
+6. Use sequential-thinking MCP: Plan fix with consideration for side effects →
+7. Use filesystem MCP: Search for related code patterns →
+8. Implement fix following project standards →
+9. Use git MCP: git diff to verify changes are minimal and targeted →
+10. Validate fix doesn't introduce new issues
+```
 
-### Never Skip MCP Documentation Reads
+### Workflow 3: Refactoring Code
 
-This is MANDATORY, not optional.
+```
+1. User requests refactoring →
+2. Use filesystem MCP: Read docs/project-rules.md for coding standards →
+3. Use git MCP: Check git log to understand evolution of code →
+4. Use filesystem MCP: Search entire codebase for affected patterns →
+5. Use sequential-thinking MCP: Create detailed refactoring plan →
+6. Use memory MCP: Remember refactoring decisions for consistency →
+7. Implement changes module by module →
+8. Use git MCP: git diff after each module to verify correctness →
+9. Run test_security.py to ensure no security regressions →
+10. Validate against project standards
+```
 
+### Workflow 4: Pre-Commit Security Check
+
+```
+1. Before commit →
+2. Use git MCP: git status to see all changes →
+3. Use git MCP: git diff to review all modifications →
+4. Use filesystem MCP: Search modified files for dangerous patterns:
+   - shell=True
+   - subprocess with user input
+   - eval/exec statements
+   - hardcoded credentials
+   - disabled authentication
+5. Use filesystem MCP: Read docs/modules/backend/backend-checklist.md →
+6. Verify all checklist items are satisfied →
+7. Run python3 test_security.py →
+8. Only proceed if all checks pass
+```
+
+---
+
+## 🔒 Security-First Development (MANDATORY)
+
+### Before ANY backend modification:
+
+1. **Read Security Documentation**
+   ```
+   Use filesystem MCP:
+   - Read docs/modules/backend/backend-rules.md
+   - Read docs/project-rules.md (security section)
+   ```
+
+2. **Search for Security Violations**
+   ```
+   Use filesystem MCP to search for:
+   - "shell=True" in modified files
+   - "subprocess.call" without validation
+   - "eval(" or "exec(" statements
+   - Unvalidated user input
+   - Missing @require_api_key decorators
+   ```
+
+3. **Verify Secure Module Usage**
+   ```
+   Ensure code imports from:
+   - ✅ secure_network_tools.py
+   - ✅ *_secure.py modules
+   
+   NOT from:
+   - ❌ Direct subprocess calls
+   - ❌ Insecure module variants
+   ```
+
+4. **Validate Input Sanitization**
+   ```
+   All user input MUST be:
+   - Validated using ipaddress module for IPs
+   - Sanitized for shell commands
+   - Checked against whitelist patterns
+   - Logged for audit trail
+   ```
+
+5. **Check Authentication**
+   ```
+   All new API endpoints MUST have:
+   - @require_api_key decorator
+   - Rate limiting via Flask-Limiter
+   - Input validation
+   - Error handling that doesn't leak info
+   ```
+
+---
+
+## 🎯 Module Detection and Routing
+
+### Automatic Module Detection
+
+When user requests involve:
+
+| Keywords in Request | Module | Primary Docs to Read |
+|-------------------|--------|---------------------|
+| "API", "endpoint", "Flask", "backend", "route" | Backend | docs/modules/backend/ |
+| "UI", "dashboard", "HTML", "Chart.js", "frontend" | Frontend | docs/modules/frontend/ |
+| "test", "pytest", "validation", "security test" | Testing | docs/modules/testing/ |
+| "deploy", "Docker", "configuration", "environment" | Infra | docs/infra/ |
+| "auto-install.sh", "start.sh", "setup" | Legacy Scripts | docs/modules/legacy-scripts/ |
+| "docs", "documentation", "markdown", "README" | Documentation | docs/documentation-* |
+
+### Multi-Module Changes
+
+If change affects multiple modules:
+1. Read `docs/project-rules.md` first (highest authority)
+2. Read each affected module's rules in priority order
+3. Use sequential-thinking MCP to plan changes that satisfy all requirements
+4. Use memory MCP to track cross-module dependencies
+
+---
+
+## 🧠 Memory MCP Usage Patterns
+
+### What to Remember (Use memory MCP to store):
+
+1. **Security Decisions**
+   ```
+   Remember: User confirmed LAB_MODE=true for testing feature X
+   Remember: Input validation pattern for IP addresses: use ipaddress.ip_address()
+   Remember: All attack endpoints must check LAB_MODE environment variable
+   ```
+
+2. **Implementation Patterns**
+   ```
+   Remember: Network scans use secure_network_tools.simulate_network_scan()
+   Remember: Chart data endpoints follow pattern: /api/charts/{chart_type}
+   Remember: Frontend polls API every 5 seconds for real-time updates
+   ```
+
+3. **Project Conventions**
+   ```
+   Remember: Backend uses Flask blueprints for modular organization
+   Remember: All dates in logs use ISO 8601 format
+   Remember: Database migrations managed manually via schema updates
+   ```
+
+4. **User Preferences**
+   ```
+   Remember: User prefers simulation mode for all security operations
+   Remember: User wants all commits to include test_security.py results
+   ```
+
+### What to Retrieve (Use memory MCP to recall):
+
+Before implementing similar features:
+```
+Search memories for: "authentication pattern"
+Search memories for: "input validation for {specific_type}"
+Search memories for: "last security decision about {topic}"
+```
+
+---
+
+## 🔍 Filesystem MCP Search Patterns
+
+### Common Security Searches
+
+Before committing changes:
+```
+Search for: "shell=True" in *.py files
+Search for: "subprocess\.(call|run|Popen)" in *.py files
+Search for: "eval\(|exec\(" in *.py files
+Search for: "TODO.*security" for pending security work
+Search for: "FIXME.*vulnerability" for known issues
+```
+
+### Documentation Searches
+
+When starting any task:
+```
+Search for: relevant keywords in docs/modules/{module}/*-rules.md
+Search for: error patterns in docs/modules/{module}/*-memories.md
+Search for: checklist items in docs/modules/{module}/*-checklist.md
+```
+
+### Pattern Searches
+
+When implementing new features:
+```
+Search for: "@app.route" to find existing API patterns
+Search for: "@require_api_key" to find authentication patterns
+Search for: "secure_network_tools" to find secure implementation examples
+Search for: "class.*Exception" to find error handling patterns
+```
+
+---
+
+## 📊 Sequential Thinking MCP Usage
+
+### Use sequential-thinking MCP for:
+
+1. **Complex Feature Planning**
+   ```
+   Create sequential thinking plan for:
+   - Adding new security scan type
+   - Refactoring authentication system
+   - Implementing new attack simulation
+   - Migrating from insecure to secure modules
+   ```
+
+2. **Security Architecture Decisions**
+   ```
+   Create sequential thinking plan for:
+   - Evaluating security of proposed change
+   - Planning input validation strategy
+   - Designing privilege separation
+   - Implementing least-privilege access
+   ```
+
+3. **Cross-Module Refactoring**
+   ```
+   Create sequential thinking plan for:
+   - Changing API contract (affects frontend + backend)
+   - Updating database schema (affects all modules)
+   - Modifying configuration format (affects deployment)
+   ```
+
+4. **Bug Investigation**
+   ```
+   Create sequential thinking plan for:
+   - Analyzing security vulnerability report
+   - Investigating performance issue
+   - Debugging race condition
+   - Tracing authentication failure
+   ```
+
+---
+
+## 🐍 SQLite MCP Usage
+
+### Database Inspection Commands
+
+Use SQLite MCP to:
+
+1. **Understand Schema**
+   ```
+   list_tables to see all tables in cyber_matrix.db
+   describe_table for each table to understand structure
+   ```
+
+2. **Query Data for Context**
+   ```
+   query: SELECT * FROM scans ORDER BY timestamp DESC LIMIT 10
+   query: SELECT * FROM logs WHERE level='ERROR' ORDER BY timestamp DESC
+   ```
+
+3. **Validate Data Integrity**
+   ```
+   query: SELECT COUNT(*) FROM scans WHERE status='pending'
+   query: SELECT DISTINCT scan_type FROM scans
+   ```
+
+### When to Use SQLite MCP
+
+- When implementing database-related features
+- When debugging data persistence issues
+- When understanding existing data model
+- Before modifying database schema
+
+---
+
+## 🔄 Git MCP Integration
+
+### Mandatory Git Checks
+
+Before ANY commit:
+```
+1. Use git MCP: git status - see all changes
+2. Use git MCP: git diff - review all modifications line by line
+3. Use git MCP: git log --oneline -10 - understand recent history
+4. Use filesystem MCP: Search for security violations in changed files
+5. Run: python3 test_security.py
+6. Only commit if all checks pass
+```
+
+### Understanding Code History
+
+When modifying existing code:
+```
+1. Use git MCP: git log --follow {filename}
+2. Use git MCP: git show {commit_hash} for relevant changes
+3. Understand why code was written that way
+4. Preserve security guarantees from original implementation
+```
+
+### Reviewing Changes
+
+After implementing feature:
+```
+1. Use git MCP: git diff to see exactly what changed
+2. Verify changes match documented requirements
+3. Check that no unintended files were modified
+4. Ensure no debug code or console.log statements remain
+```
+
+---
+
+## 🎨 Frontend-Specific MCP Workflows
+
+### Before Modifying kamkrk_v2.html:
+
+1. **Read Documentation**
+   ```
+   Use filesystem MCP:
+   - Read docs/modules/frontend/frontend-rules.md
+   - Read docs/modules/frontend/frontend-memories.md
+   ```
+
+2. **Understand Existing Patterns**
+   ```
+   Use filesystem MCP:
+   - Search for "fetch('/api/" to find API call patterns
+   - Search for "Chart.js" to find charting patterns
+   - Search for "class.*card.*cyber" to find UI component patterns
+   ```
+
+3. **Maintain Consistency**
+   ```
+   - Keep cyberpunk aesthetic (purple/blue gradients, matrix effects)
+   - Use existing CSS classes for consistency
+   - Follow established error handling patterns
+   - Maintain responsive design patterns
+   ```
+
+4. **Connect to Live APIs**
+   ```
+   - Never use mock data in production code
+   - Always call real backend endpoints
+   - Handle loading states gracefully
+   - Show meaningful error messages
+   ```
+
+---
+
+## 🔧 Backend-Specific MCP Workflows
+
+### Before Modifying app.py or modules:
+
+1. **Security First**
+   ```
+   Use filesystem MCP:
+   - Read docs/modules/backend/backend-rules.md (MANDATORY)
+   - Search for existing security patterns
+   - Verify secure_network_tools.py usage
+   ```
+
+2. **Follow Established Patterns**
+   ```
+   All new endpoints must:
+   - Use @app.route decorator
+   - Have @require_api_key if non-public
+   - Validate all input parameters
+   - Use secure modules for network operations
+   - Return proper HTTP status codes
+   - Include error handling
+   - Add logging for security events
+   ```
+
+3. **Module Selection Logic**
+   ```python
+   # ALWAYS use this pattern:
+   import os
+   from secure_network_tools import simulate_network_scan
+   
+   LAB_MODE = os.environ.get('LAB_MODE', 'false').lower() == 'true'
+   
+   if LAB_MODE and user_has_confirmed_authorization():
+       # Use real tools with extreme caution
+       result = real_tool()
+   else:
+       # ALWAYS default to simulation
+       result = simulate_network_scan()
+   ```
+
+4. **Input Validation Pattern**
+   ```python
+   # ALWAYS validate user input:
+   import ipaddress
+   
+   def validate_ip(ip_string):
+       try:
+           ipaddress.ip_address(ip_string)
+           return True
+       except ValueError:
+           return False
+   
+   # Use similar validation for all user inputs
+   ```
+
+---
+
+## 🧪 Testing-Specific MCP Workflows
+
+### Before Modifying test_security.py:
+
+1. **Read Testing Documentation**
+   ```
+   Use filesystem MCP:
+   - Read docs/modules/testing/testing-rules.md
+   - Read docs/modules/testing/testing-memories.md
+   ```
+
+2. **Run Tests Before Changes**
+   ```
+   python3 test_security.py
+   # Document baseline results
+   ```
+
+3. **Add Tests for New Features**
+   ```
+   Every new feature MUST have:
+   - Input validation tests
+   - Security constraint tests
+   - Error handling tests
+   - Integration tests
+   ```
+
+4. **Maintain Test Quality**
+   ```
+   - Tests must be deterministic
+   - Tests must not require network access
+   - Tests must clean up after themselves
+   - Tests must be fast (<5 seconds each)
+   ```
+
+---
+
+## 📦 Deployment & Infrastructure MCP Workflows
+
+### Before Modifying start.sh, auto-install.sh, or configs:
+
+1. **Read Infrastructure Documentation**
+   ```
+   Use filesystem MCP:
+   - Read docs/infra/deployment-rules.md
+   - Read docs/infra/config-rules.md
+   ```
+
+2. **Verify Security Defaults**
+   ```
+   All scripts must:
+   - Set DEBUG=False for production
+   - Bind to 127.0.0.1 by default
+   - Set LAB_MODE=false by default
+   - Include startup security checks
+   - Log configuration at startup
+   ```
+
+3. **Test in Isolation**
+   ```
+   - Test script in clean environment
+   - Verify idempotency (can run multiple times safely)
+   - Check error handling
+   - Validate cleanup on failure
+   ```
+
+---
+
+## 🚨 Critical Security Patterns (MEMORIZE)
+
+### Pattern 1: Endpoint Security Template
+
+```python
+from flask_limiter import Limiter
+from functools import wraps
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('X-API-Key')
+        if not is_valid_api_key(api_key):
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/api/secure/endpoint', methods=['POST'])
+@require_api_key
+@limiter.limit("10 per minute")
+def secure_endpoint():
+    # Validate input
+    data = request.get_json()
+    if not validate_input(data):
+        return jsonify({'error': 'Invalid input'}), 400
+    
+    # Use secure module
+    from secure_network_tools import secure_operation
+    result = secure_operation(data)
+    
+    # Log security event
+    logger.info(f"Secure operation executed: {result['summary']}")
+    
+    return jsonify(result), 200
+```
+
+### Pattern 2: Input Validation Template
+
+```python
+import ipaddress
+import re
+
+def validate_ip_address(ip_string):
+    """Validate IP address format"""
+    try:
+        ipaddress.ip_address(ip_string)
+        return True
+    except ValueError:
+        logger.warning(f"Invalid IP address: {ip_string}")
+        return False
+
+def validate_port_number(port):
+    """Validate port number range"""
+    try:
+        port_int = int(port)
+        if 1 <= port_int <= 65535:
+            return True
+        return False
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid port number: {port}")
+        return False
+
+def sanitize_string_input(user_input):
+    """Remove dangerous characters"""
+    # Only allow alphanumeric, dash, underscore, period
+    return re.sub(r'[^a-zA-Z0-9\-_.]', '', user_input)
+```
+
+### Pattern 3: Secure Subprocess Template
+
+```python
+import subprocess
+import shlex
+
+def safe_subprocess_call(command_parts, timeout=30):
+    """Safely execute subprocess with validation"""
+    # NEVER use shell=True
+    # ALWAYS pass command as list
+    # ALWAYS set timeout
+    # ALWAYS validate inputs before calling
+    
+    try:
+        result = subprocess.run(
+            command_parts,  # List, not string
+            shell=False,    # CRITICAL: Never True
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False
+        )
+        return result.stdout, result.returncode
+    except subprocess.TimeoutExpired:
+        logger.error(f"Command timed out: {command_parts}")
+        return None, -1
+    except Exception as e:
+        logger.error(f"Subprocess error: {e}")
+        return None, -1
+```
+
+---
+
+## 📝 Documentation Maintenance
+
+### When Adding New Features:
+
+1. **Update Module Documentation**
+   ```
+   Use filesystem MCP:
+   - Add to docs/modules/{module}/{module}-memories.md
+   - Update docs/modules/{module}/{module}-checklist.md
+   - Add examples to docs/modules/{module}/{module}-rules.md if introducing new patterns
+   ```
+
+2. **Update Central Documentation**
+   ```
+   - Update README.md if user-facing feature
+   - Update docs/AI_INSTRUCTIONS.md if new AI workflow
+   - Update docs/project-rules.md if new global rule
+   ```
+
+3. **Update API Documentation**
+   ```
+   - Document new endpoints in README.md
+   - Include request/response examples
+   - Document authentication requirements
+   - Note rate limits
+   ```
+
+---
+
+## 🎯 Quick Command Reference
+
+### Most Common MCP Operations:
+
+```
+Read documentation:
+filesystem MCP: read_file("docs/AI_INSTRUCTIONS.md")
+filesystem MCP: read_file("docs/modules/backend/backend-rules.md")
+
+Search codebase:
+filesystem MCP: search_files("shell=True", "**/*.py")
+filesystem MCP: search_files("@app.route", "**/*.py")
+
+Check git status:
+git MCP: git_status()
+git MCP: git_diff()
+
+Plan complex change:
+sequential-thinking MCP: create_sequential_thinking(
+  "Plan secure implementation of {feature}"
+)
+
+Remember decision:
+memory MCP: create_memory(
+  "Security decision: All network scans use simulation mode by default"
+)
+
+Query database:
+sqlite MCP: query("SELECT * FROM scans ORDER BY timestamp DESC LIMIT 10")
+```
+
+---
+
+## ⚡ TL;DR - Absolute Requirements
+
+1. **ALWAYS read documentation before code changes** (use filesystem MCP)
+2. **ALWAYS default to secure modules** (secure_network_tools.py, *_secure.py)
+3. **NEVER use shell=True** (search with filesystem MCP before committing)
+4. **ALWAYS validate user input** (use validation patterns above)
+5. **ALWAYS require authentication** (@require_api_key on sensitive endpoints)
+6. **ALWAYS use sequential-thinking MCP** for complex changes
+7. **ALWAYS use memory MCP** to remember project patterns
+8. **ALWAYS use git MCP** to review changes before committing
+9. **ALWAYS run test_security.py** before committing
+10. **ALWAYS follow docs/project-rules.md** (highest authority)
+
+---
+
+## 🔐 Security Workflow (Every Single Time)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Read docs/AI_INSTRUCTIONS.md (filesystem MCP)            │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Identify module → Read module rules (filesystem MCP)     │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Search for security violations (filesystem MCP)          │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Plan implementation (sequential-thinking MCP)            │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Use ONLY secure modules (secure_network_tools.py)        │
+├─────────────────────────────────────────────────────────────┤
+│ 6. Validate ALL user input (ipaddress, regex whitelists)    │
+├─────────────────────────────────────────────────────────────┤
+│ 7. Add authentication (@require_api_key)                    │
+├─────────────────────────────────────────────────────────────┤
+│ 8. Implement with error handling                            │
+├─────────────────────────────────────────────────────────────┤
+│ 9. Review changes (git MCP: git diff)                       │
+├─────────────────────────────────────────────────────────────┤
+│ 10. Run python3 test_security.py                            │
+├─────────────────────────────────────────────────────────────┤
+│ 11. Remember decisions (memory MCP)                         │
+├─────────────────────────────────────────────────────────────┤
+│ 12. Update documentation (filesystem MCP)                   │
+└─────────────────────────────────────────────────────────────┘
+
+IF ANY STEP FAILS → STOP AND FIX
+```
+
+---
+
+**This file establishes ABSOLUTE CONTROL for all AI assistant behavior in CYBER-MATRIX v8.0.**
+
+**Non-compliance is not acceptable. Every rule here exists for security and project integrity.**
+
+**MCP servers are not optional enhancements—they are MANDATORY tools for safe development.**
