@@ -74,6 +74,8 @@
       <a href="#backend">Start Backend</a>
       <a href="#mcp">Install MCP Servers</a>
       <a href="#client">Client Config</a>
+      <a href="#assistant">Assistant Mode</a>
+      <a href="#recipes">MCP Task Recipes</a>
       <a href="#flows">Automated Flows</a>
       <a href="#troubleshoot">Troubleshooting</a>
       <a href="#appendix">Appendix</a>
@@ -154,7 +156,7 @@ pip3 install --user -r requirements.txt</code></pre>
       <h2>Environment configuration (.env)</h2>
       <div class="panel">
         <p>Create <span class="mono">/workspace/.env</span> with secure defaults.</p>
-        <pre><button class="copy" data-clip="env1">Copy</button><code id="env1">cat > /workspace/.env &lt;&lt;'EOF'
+        <pre><button class="copy" data-clip="env1">Copy</button><code id="env1">cat > /workspace/.env <<'EOF'
 CYBER_MATRIX_HOST=127.0.0.1
 CYBER_MATRIX_PORT=5000
 CYBER_MATRIX_API_KEY=change-me-32+chars
@@ -231,7 +233,7 @@ server-git --help >/dev/null 2>&1 && echo "git OK"</code></pre>
       <h2>Configure your MCP client</h2>
       <div class="panel">
         <p>Create <span class="mono">/workspace/mcp.config.json</span> and point your MCP client to it (or copy the <span class="mono">mcpServers</span> section into your client settings).</p>
-        <pre><button class="copy" data-clip="cfg1">Copy</button><code id="cfg1">cat > /workspace/mcp.config.json &lt;&lt;'JSON'
+        <pre><button class="copy" data-clip="cfg1">Copy</button><code id="cfg1">cat > /workspace/mcp.config.json <<'JSON'
 {
   "mcpServers": {
     "fs": {
@@ -272,6 +274,133 @@ JSON</code></pre>
             </ul>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="assistant">
+      <h2>Assistant Mode (use MCP servers to complete kam.krk_v2.o)</h2>
+      <div class="panel">
+        <p>This section shows how to use <strong>MCP servers as assistants</strong> (not embedded) to drive development of the <span class="mono">kam.krk_v2.o</span> project: editing files, testing endpoints, and committing changes—fully local and secure.</p>
+        <div class="grid three">
+          <div class="callout">
+            <strong>Servers to enable</strong>
+            <ul>
+              <li><b>Filesystem</b>: read/write under <span class="mono">/workspace</span></li>
+              <li><b>HTTP</b>: call <span class="mono">http://127.0.0.1:5000</span> with <span class="kbd">X-API-Key</span></li>
+              <li><b>Git</b>: status/diff/commit locally (push disabled)</li>
+            </ul>
+          </div>
+          <div class="callout">
+            <strong>Client checks</strong>
+            <ul>
+              <li>Confirm tools list shows fs/http/git</li>
+              <li>Run a test HTTP GET to <span class="mono">/api/auth/verify</span></li>
+              <li>Read <span class="mono">/workspace/app.py</span> via FS</li>
+            </ul>
+          </div>
+          <div class="callout">
+            <strong>Guardrails</strong>
+            <ul>
+              <li>Bind to <span class="mono">127.0.0.1</span> only</li>
+              <li>Prefer secure modules (<span class="mono">*_secure.py</span>)</li>
+              <li>Commit locally; avoid pushes</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="recipes">
+      <h2>MCP Task Recipes for kam.krk_v2.o</h2>
+      <div class="panel">
+        <h3>Recipe A — Verify API access via HTTP server</h3>
+        <p>Use the HTTP server to talk to the running Flask app with your API key.</p>
+        <pre><button class="copy" data-clip="rA1">Copy</button><code id="rA1"># HTTP GET (send header X-API-Key)
+# Method: GET
+# URL: http://127.0.0.1:5000/api/auth/verify
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY" }
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">If verification fails, (1) ensure the backend is running, (2) set <span class="kbd">CYBER_MATRIX_API_KEY</span> using the steps in the Environment section.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe B — Edit code with Filesystem, commit with Git</h3>
+        <ol>
+          <li>Open a file with FS (e.g., <span class="mono">app.py</span> lines 205–212 for <span class="mono">sanitize_input</span>).</li>
+          <li>Edit carefully; keep secure behavior and validations.</li>
+          <li>Use Git: status → diff → add → commit (local only).</li>
+        </ol>
+        <pre><button class="copy" data-clip="rB1">Copy</button><code id="rB1"># Git (via MCP git server)
+# status
+# diff
+# add paths: app.py (or changed files)
+# commit message: "Improve input sanitization and validation behavior"
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">Do not push by default. Keep changes on the current branch until reviewed. Set <span class="mono">MCP_GIT_ALLOW_PUSH=true</span> only in controlled environments.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe C — Start a network scan and poll progress (HTTP)</h3>
+        <pre><button class="copy" data-clip="rC1">Copy</button><code id="rC1"># Start scan
+# Method: POST
+# URL: http://127.0.0.1:5000/api/network/scan
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY", "Content-Type": "application/json" }
+# Body: { "ip_range": "192.168.1.0/24" }
+
+# Poll progress
+# Method: GET
+# URL: http://127.0.0.1:5000/api/scan/progress
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY" }
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">If <span class="mono">nmap</span> is not present, results still work with ARP and basic checks. Install <span class="kbd">sudo apt-get install -y nmap</span> for richer output.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe D — Port scan and basic vulnerability snapshot (HTTP)</h3>
+        <pre><button class="copy" data-clip="rD1">Copy</button><code id="rD1"># Port scan
+# POST http://127.0.0.1:5000/api/port/scan
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY", "Content-Type": "application/json" }
+# Body: { "target_ip": "192.168.1.10", "port_range": "22,80,443" }
+
+# Vulnerability scan
+# POST http://127.0.0.1:5000/api/vulnerability/scan
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY", "Content-Type": "application/json" }
+# Body: { "target_ip": "192.168.1.10", "intensity": "medium" }
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">Attack routes are simulations; use them for educational flows without real exploitation.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe E — Fix a failing security test</h3>
+        <ol>
+          <li>Reproduce by running <span class="kbd">python3 test_security.py</span> in a terminal.</li>
+          <li>Use FS to open the relevant function (e.g., <span class="mono">sanitize_input</span> in <span class="mono">app.py</span>).</li>
+          <li>Adjust logic minimally; keep regex removing dangerous characters and length limits.</li>
+          <li>Commit via Git with a clear message focused on the <em>why</em>.</li>
+          <li>Verify by calling key endpoints with HTTP to ensure no regressions (e.g., <span class="mono">/api/port/scan</span> rejects bad input).</li>
+        </ol>
+        <details><summary>Tip</summary>
+          <div class="panel">If a test expects specific sanitization, mirror that behavior while preserving security invariants (no <span class="mono">shell=True</span>, input length caps, strict IP/port validation).</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe F — Capture artifacts for review (FS + HTTP)</h3>
+        <ol>
+          <li>After scans, fetch charts/metrics with HTTP for quick summaries.</li>
+          <li>Use FS to copy <span class="mono">cyber_matrix.log</span> and an SQLite backup of <span class="mono">cyber_matrix.db</span> into an <span class="mono">artifacts/</span> folder.</li>
+          <li>Commit artifacts with Git if desired (local audit trail).</li>
+        </ol>
+        <pre><button class="copy" data-clip="rF1">Copy</button><code id="rF1"># Example artifact steps (run in terminal)
+mkdir -p /workspace/artifacts 2>/dev/null || true
+cp /workspace/cyber_matrix.log \
+  "/workspace/artifacts/cyber_matrix-$(date +%F-%H%M%S).log" 2>/dev/null || true
+sqlite3 /workspace/cyber_matrix.db \
+  ".backup '/workspace/artifacts/cyber_matrix-$(date +%F-%H%M%S).db'" 2>/dev/null || true
+</code></pre>
       </div>
     </section>
 
