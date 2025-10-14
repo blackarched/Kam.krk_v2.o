@@ -217,6 +217,16 @@ export FLASK_DEBUG=1
 python3 app.py
 ```
 
+## 📚 Documentation & AI Assistant Rules
+
+**👉 IMPORTANT: Before editing or generating code, see [`docs/AI_INSTRUCTIONS.md`](docs/AI_INSTRUCTIONS.md)**
+
+All AI assistant actions must follow these documented rules. This ensures consistency, security, and quality across the project.
+
+- **For AI Assistants:** Read `docs/AI_INSTRUCTIONS.md` before performing any task
+- **For Developers:** See `docs/index.md` for complete documentation index
+- **Quick Reference:** Module-specific docs in `docs/modules/` directory
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.

@@ -1,3 +1,14 @@
+<!-- AI ASSISTANT INSTRUCTION:
+This file contains critical rules and instructions.
+Any AI assistant (Cursor, VS Code Copilot, etc.) must fully read and apply the contents of this file
+before making any modifications or generating code related to its scope.
+Priority order if multiple files apply:
+1. docs/project-rules.md
+2. Relevant module-specific file
+3. docs/general-guidelines.md
+No task should be executed without referencing the correct documentation first.
+-->
+
 # backend-rules
 - Use secure tools from `secure_network_tools.py` for all OS commands.
 - Ensure all new API endpoints require an API key for access.
