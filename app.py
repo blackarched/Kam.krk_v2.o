@@ -9,6 +9,7 @@ for network scanning, vulnerability assessment, and penetration testing operatio
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 import subprocess
 import re
 import os
@@ -33,6 +34,9 @@ from network_interface_manager import network_manager
 # Initialize Flask app FIRST (before any app.logger calls)
 app = Flask(__name__)
 CORS(app, origins=['http://localhost:5000', 'http://127.0.0.1:5000'])
+
+# Initialize SocketIO for WebSocket support
+socketio = SocketIO(app, cors_allowed_origins=['http://localhost:5000', 'http://127.0.0.1:5000'], async_mode='threading')
 
 # Configuration - Generate secure secret key
 app.config['SECRET_KEY'] = secrets.token_hex(32)
@@ -1395,6 +1399,323 @@ def api_console_execute():
         "output": output
     })
 
+# ===== Network Discovery & 3D Map API Endpoints =====
+
+@app.route('/api/networks', methods=['GET'])
+def api_networks_list():
+    """Get list of all discovered networks"""
+    try:
+        # Get networks from secure tools
+        if SECURE_TOOLS_AVAILABLE:
+            wifi_networks = secure_tools.get_wifi_networks_secure()
+        else:
+            wifi_networks = []
+        
+        # Get devices from database
+        networks = []
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT DISTINCT ip_address, mac_address, hostname, device_type, 
+                       last_seen, status, vulnerability_score
+                FROM network_devices
+                WHERE status = 'active'
+                ORDER BY last_seen DESC
+            """)
+            db_devices = cursor.fetchall()
+        
+        # Combine WiFi networks and discovered devices
+        network_id = 1
+        for wifi in wifi_networks:
+            networks.append({
+                "id": f"wifi_{network_id}",
+                "ssid": wifi.get('essid', 'Unknown'),
+                "bssid": wifi.get('bssid', '00:00:00:00:00:00'),
+                "mac": wifi.get('bssid', '00:00:00:00:00:00'),
+                "ip": None,
+                "vendor": "Unknown",
+                "signal_dbm": -60,
+                "rssi": wifi.get('rssi', 50),
+                "channel": wifi.get('channel', 1),
+                "frequency": 2400 + (wifi.get('channel', 1) * 5),
+                "security": "WPA2" if wifi.get('encrypted', True) else "Open",
+                "gps": None,
+                "device_count": 0,
+                "last_seen": datetime.now().isoformat()
+            })
+            network_id += 1
+        
+        # Add discovered devices as network nodes
+        for device in db_devices:
+            networks.append({
+                "id": f"dev_{device['mac_address']}",
+                "ssid": device['hostname'] or device['ip_address'],
+                "bssid": device['mac_address'] or "00:00:00:00:00:00",
+                "mac": device['mac_address'] or "00:00:00:00:00:00",
+                "ip": device['ip_address'],
+                "vendor": device['device_type'] or "Unknown",
+                "signal_dbm": -50,
+                "rssi": 70,
+                "channel": 1,
+                "frequency": 2412,
+                "security": "Unknown",
+                "gps": None,
+                "device_count": 0,
+                "last_seen": device['last_seen'] or datetime.now().isoformat()
+            })
+        
+        return jsonify({
+            "status": "success",
+            "networks": networks,
+            "total": len(networks),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        app.logger.error(f"Networks list error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "networks": [],
+            "total": 0,
+            "error": "Failed to retrieve networks"
+        }), 500
+
+@app.route('/api/networks/<network_id>', methods=['GET'])
+def api_network_detail(network_id):
+    """Get details of a specific network"""
+    try:
+        network_id = sanitize_input(network_id, 50)
+        
+        # Check if it's a WiFi network or device
+        if network_id.startswith('wifi_'):
+            # Get from WiFi scan
+            if SECURE_TOOLS_AVAILABLE:
+                wifi_networks = secure_tools.get_wifi_networks_secure()
+                idx = int(network_id.split('_')[1]) - 1
+                if 0 <= idx < len(wifi_networks):
+                    wifi = wifi_networks[idx]
+                    return jsonify({
+                        "status": "success",
+                        "network": {
+                            "id": network_id,
+                            "ssid": wifi.get('essid', 'Unknown'),
+                            "bssid": wifi.get('bssid', '00:00:00:00:00:00'),
+                            "mac": wifi.get('bssid', '00:00:00:00:00:00'),
+                            "channel": wifi.get('channel', 1),
+                            "frequency": 2400 + (wifi.get('channel', 1) * 5),
+                            "security": "WPA2" if wifi.get('encrypted', True) else "Open",
+                            "signal_dbm": -60,
+                            "last_seen": datetime.now().isoformat()
+                        }
+                    })
+        elif network_id.startswith('dev_'):
+            # Get from database
+            mac = network_id.replace('dev_', '')
+            with get_db_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT * FROM network_devices WHERE mac_address = ?",
+                    (mac,)
+                )
+                device = cursor.fetchone()
+                if device:
+                    return jsonify({
+                        "status": "success",
+                        "network": {
+                            "id": network_id,
+                            "ssid": device['hostname'] or device['ip_address'],
+                            "bssid": device['mac_address'],
+                            "mac": device['mac_address'],
+                            "ip": device['ip_address'],
+                            "vendor": device['device_type'],
+                            "last_seen": device['last_seen']
+                        }
+                    })
+        
+        return jsonify({"error": "Network not found"}), 404
+    except Exception as e:
+        app.logger.error(f"Network detail error: {str(e)}")
+        return jsonify({"error": "Failed to retrieve network details"}), 500
+
+@app.route('/api/devices', methods=['GET'])
+def api_devices_list():
+    """Get list of all discovered devices"""
+    try:
+        devices = []
+        with get_db_connection() as conn:
+            cursor = conn.execute("""
+                SELECT ip_address, mac_address, hostname, device_type, 
+                       last_seen, status, vulnerability_score
+                FROM network_devices
+                WHERE status = 'active'
+                ORDER BY last_seen DESC
+            """)
+            db_devices = cursor.fetchall()
+        
+        for device in db_devices:
+            devices.append({
+                "id": device['mac_address'] or device['ip_address'],
+                "mac": device['mac_address'] or "00:00:00:00:00:00",
+                "ip": device['ip_address'],
+                "hostname": device['hostname'] or "Unknown",
+                "vendor": device['device_type'] or "Unknown",
+                "device_type": device['device_type'] or "Unknown",
+                "status": device['status'],
+                "vulnerability_score": device['vulnerability_score'] or 0,
+                "last_seen": device['last_seen'] or datetime.now().isoformat(),
+                "signal_dbm": -50,
+                "rssi": 70
+            })
+        
+        return jsonify({
+            "status": "success",
+            "devices": devices,
+            "total": len(devices),
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        app.logger.error(f"Devices list error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "devices": [],
+            "total": 0,
+            "error": "Failed to retrieve devices"
+        }), 500
+
+@app.route('/api/devices/<mac_address>', methods=['GET'])
+def api_device_detail(mac_address):
+    """Get details of a specific device"""
+    try:
+        mac_address = sanitize_input(mac_address, 20)
+        
+        with get_db_connection() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM network_devices WHERE mac_address = ?",
+                (mac_address,)
+            )
+            device = cursor.fetchone()
+        
+        if device:
+            return jsonify({
+                "status": "success",
+                "device": {
+                    "id": device['mac_address'],
+                    "mac": device['mac_address'],
+                    "ip": device['ip_address'],
+                    "hostname": device['hostname'] or "Unknown",
+                    "vendor": device['device_type'],
+                    "device_type": device['device_type'],
+                    "status": device['status'],
+                    "vulnerability_score": device['vulnerability_score'],
+                    "last_seen": device['last_seen']
+                }
+            })
+        else:
+            return jsonify({"error": "Device not found"}), 404
+    except Exception as e:
+        app.logger.error(f"Device detail error: {str(e)}")
+        return jsonify({"error": "Failed to retrieve device details"}), 500
+
+# ===== WebSocket Handlers =====
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle WebSocket connection"""
+    app.logger.info("WebSocket client connected")
+    emit('connected', {'status': 'connected', 'message': 'Connected to CYBER-MATRIX'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle WebSocket disconnection"""
+    app.logger.info("WebSocket client disconnected")
+
+@socketio.on('subscribe_networks')
+def handle_subscribe_networks():
+    """Subscribe to network updates"""
+    app.logger.info("Client subscribed to network updates")
+    emit('subscribed', {'status': 'subscribed', 'channel': 'networks'})
+
+def broadcast_network_update(update_type, network_data):
+    """Broadcast network update to all connected clients"""
+    try:
+        socketio.emit('network_update', {
+            'type': update_type,
+            'data': network_data,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        app.logger.error(f"WebSocket broadcast error: {str(e)}")
+
+def network_monitor_thread():
+    """Background thread to monitor and broadcast network changes"""
+    last_networks = []
+    while True:
+        try:
+            time.sleep(10)  # Poll every 10 seconds
+            
+            # Get current networks
+            networks = []
+            if SECURE_TOOLS_AVAILABLE:
+                wifi_networks = secure_tools.get_wifi_networks_secure()
+                network_id = 1
+                for wifi in wifi_networks:
+                    networks.append({
+                        "id": f"wifi_{network_id}",
+                        "ssid": wifi.get('essid', 'Unknown'),
+                        "bssid": wifi.get('bssid', '00:00:00:00:00:00'),
+                        "mac": wifi.get('bssid', '00:00:00:00:00:00'),
+                        "signal_dbm": -60,
+                        "channel": wifi.get('channel', 1),
+                        "security": "WPA2" if wifi.get('encrypted', True) else "Open",
+                        "last_seen": datetime.now().isoformat()
+                    })
+                    network_id += 1
+            
+            # Get devices from database
+            with get_db_connection() as conn:
+                cursor = conn.execute("""
+                    SELECT ip_address, mac_address, hostname, device_type, last_seen
+                    FROM network_devices
+                    WHERE status = 'active'
+                    ORDER BY last_seen DESC
+                """)
+                db_devices = cursor.fetchall()
+            
+            for device in db_devices:
+                networks.append({
+                    "id": f"dev_{device['mac_address']}",
+                    "ssid": device['hostname'] or device['ip_address'],
+                    "bssid": device['mac_address'],
+                    "mac": device['mac_address'],
+                    "ip": device['ip_address'],
+                    "vendor": device['device_type'],
+                    "last_seen": device['last_seen']
+                })
+            
+            # Check for changes
+            current_ids = set(n['id'] for n in networks)
+            last_ids = set(n['id'] for n in last_networks)
+            
+            # New networks
+            new_ids = current_ids - last_ids
+            for network in networks:
+                if network['id'] in new_ids:
+                    broadcast_network_update('add', network)
+            
+            # Removed networks
+            removed_ids = last_ids - current_ids
+            for network in last_networks:
+                if network['id'] in removed_ids:
+                    broadcast_network_update('remove', network)
+            
+            # Updated networks
+            for network in networks:
+                if network['id'] in last_ids:
+                    broadcast_network_update('update', network)
+            
+            last_networks = networks
+            
+        except Exception as e:
+            app.logger.error(f"Network monitor thread error: {str(e)}")
+            time.sleep(30)
+
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully"""
     print("\\nShutting down CYBER-MATRIX server...")
@@ -1412,6 +1733,10 @@ if __name__ == '__main__':
     metrics_thread = threading.Thread(target=update_metrics_thread, daemon=True)
     metrics_thread.start()
     
+    # Start network monitor thread
+    network_thread = threading.Thread(target=network_monitor_thread, daemon=True)
+    network_thread.start()
+    
     # Configure logging
     if not app.debug:
         file_handler = RotatingFileHandler('cyber_matrix.log', maxBytes=10240, backupCount=10)
@@ -1427,14 +1752,16 @@ if __name__ == '__main__':
     print("🌐 Dashboard will be available at: http://127.0.0.1:5000")
     print("🔒 API endpoints active and ready")
     print("⚡ Real-time metrics enabled")
+    print("🔌 WebSocket server active at ws://127.0.0.1:5000/socket.io/")
     
-    # Run the Flask app with secure configuration
+    # Run the Flask app with SocketIO
     host = os.environ.get('CYBER_MATRIX_HOST', '127.0.0.1')
     port = int(os.environ.get('CYBER_MATRIX_PORT', '5000'))
     
-    app.run(
+    socketio.run(
+        app,
         host=host,
         port=port,
         debug=False,
-        threaded=True
+        allow_unsafe_werkzeug=True
     )
