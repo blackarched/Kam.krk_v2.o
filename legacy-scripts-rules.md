@@ -1,0 +1,11 @@
+# legacy-scripts-rules
+- Do not run these scripts in any production environment.
+- Replace all usage of these scripts with their secure alternatives.
+- Use these scripts for security vulnerability analysis only.
+- Remove any `shell=True` calls if you must modify them for testing.
+- Sanitize all inputs before passing them to any function in these files.
+- Assume these scripts contain critical and unpatched security flaws.
+- Delete these files entirely after migrating to the secure versions.
+- Do not add any new features or code to these files.
+- Prevent these files from being executed by web server processes.
+- Educate developers about the specific risks these files pose.

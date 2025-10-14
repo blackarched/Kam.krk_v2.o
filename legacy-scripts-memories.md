@@ -1,0 +1,11 @@
+# legacy-scripts-memories
+- These scripts contain known command injection vulnerabilities.
+- They frequently use `shell=True` with unsanitized user input.
+- `kamkrk_v2.py` contains insecure Wi-Fi attack functions.
+- `detect.py` contains insecure device detection logic.
+- `networks.py` contains insecure network discovery methods.
+- Their secure replacements are the `*_secure.py` files.
+- All their intended functionality is now in `app.py` via secure modules.
+- These files are preserved for historical or educational context only.
+- They lack proper input validation and error handling.
+- They depend on external tools being in the system's PATH.
