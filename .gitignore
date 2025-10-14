@@ -1,0 +1,52 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database
+cyber_matrix.db
+*.db
+
+# Logs
+*.log
+cyber_matrix.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# MCP server data and secrets
+.mcp/memory/
+.env.mcp
+*.mcp.backup
+
+# Temporary files
+*.tmp
+*.bak
+*.swp

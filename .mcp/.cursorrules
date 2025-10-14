@@ -1,0 +1,58 @@
+# Cursor Rules for MCP-Enhanced Development
+
+## MCP-First Development Protocol
+
+### Before ANY code modification:
+1. Use filesystem MCP to read docs/AI_INSTRUCTIONS.md
+2. Identify affected module
+3. Read module-specific documentation via MCP
+4. Use sequential-thinking MCP to plan changes
+5. Remember key decisions with memory MCP
+
+### Priority Order (always enforce):
+1. docs/project-rules.md (read via MCP filesystem)
+2. Module-specific docs (read via MCP filesystem)
+3. docs/general-guidelines.md (read via MCP filesystem)
+
+### MCP Tools Usage:
+
+**Filesystem MCP:**
+- Read all documentation before changes
+- Search codebase for patterns
+- Batch file operations when possible
+
+**Git MCP:**
+- Check git status before commits
+- Review git log for context
+- Verify changes with git diff
+
+**Memory MCP:**
+- Remember: Security rules from docs
+- Remember: Implementation decisions
+- Remember: Project patterns and conventions
+
+**Sequential Thinking MCP:**
+- Plan complex refactoring
+- Break down feature implementation
+- Design security-conscious architecture
+
+### Required MCP Workflow:
+
+```
+User Request → Read Docs (MCP) → Plan (Sequential Thinking) → 
+Search Code (MCP) → Remember Decisions (MCP) → Implement → 
+Validate (Git Diff MCP) → Test
+```
+
+### Security via MCP:
+
+Before any backend change:
+- Read docs/modules/backend/backend-rules.md
+- Search for "shell=True" violations
+- Verify secure_network_tools.py usage
+- Check against security checklist
+
+### Never Skip MCP Documentation Reads
+
+This is MANDATORY, not optional.
+
