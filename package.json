@@ -3,20 +3,32 @@
   "version": "8.0.0",
   "description": "Advanced Holographic Penetration Testing Suite",
   "scripts": {
+    "dev": "python3 app.py",
+    "test:unit": "python3 -m pytest test/unit/ -v",
+    "smoke:test": "node test/run_smoke.js",
     "docs:validate": "node scripts/validate-docs.js",
     "docs:test": "node test/docs-smoke.js",
-    "docs:check": "npm run docs:validate && npm run docs:test"
+    "docs:check": "npm run docs:validate && npm run docs:test",
+    "test:all": "npm run test:unit && npm run smoke:test"
   },
   "keywords": [
     "penetration-testing",
     "security",
     "network-scanning",
     "cybersecurity",
-    "vulnerability-assessment"
+    "vulnerability-assessment",
+    "3d-visualization",
+    "network-mapping"
   ],
   "author": "CYBER-MATRIX Team",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
-  }
+    "node": ">=14.0.0",
+    "python": ">=3.8.0"
+  },
+  "dependencies": {
+    "puppeteer": "^21.5.2",
+    "socket.io-client": "^4.5.4"
+  },
+  "devDependencies": {}
 }

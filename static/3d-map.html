@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER-MATRIX 3D Network Map</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #00ff41;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #scene-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #00ff41;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        #hud h2 {
+            color: #00ff41;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        #hud .stat {
+            margin: 5px 0;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border: 2px solid #c000ff;
+            border-radius: 5px;
+            z-index: 100;
+            min-width: 250px;
+        }
+
+        #controls h3 {
+            color: #c000ff;
+            margin-bottom: 10px;
+        }
+
+        #controls input, #controls select, #controls button {
+            width: 100%;
+            margin: 5px 0;
+            padding: 5px;
+            background: #000;
+            border: 1px solid #c000ff;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+        }
+
+        #controls button {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #controls button:hover {
+            background: #c000ff;
+            color: #000;
+        }
+
+        #side-panel {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border: 2px solid #ff00de;
+            border-radius: 5px;
+            z-index: 101;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #side-panel.visible {
+            display: block;
+        }
+
+        #side-panel h3 {
+            color: #ff00de;
+            margin-bottom: 15px;
+        }
+
+        #side-panel .detail {
+            margin: 10px 0;
+            padding: 5px;
+            border-left: 3px solid #00ff41;
+            padding-left: 10px;
+        }
+
+        #side-panel .detail strong {
+            color: #00ddff;
+        }
+
+        #side-panel button {
+            margin: 5px 5px 5px 0;
+            padding: 8px 15px;
+            background: #000;
+            border: 1px solid #ff00de;
+            color: #00ff41;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        #side-panel button:hover {
+            background: #ff00de;
+            color: #000;
+        }
+
+        #tooltip {
+            position: absolute;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid #00ff41;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 200;
+            display: none;
+            font-size: 11px;
+            max-width: 250px;
+        }
+
+        #status-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff41;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        #status-indicator.offline {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        #status-indicator.online {
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 50;
+            display: none;
+        }
+
+        .empty-state.visible {
+            display: block;
+        }
+
+        .empty-state h2 {
+            color: #c000ff;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #00ff41;
+            font-size: 14px;
+        }
+
+        #keyboard-shortcuts {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            font-size: 10px;
+            z-index: 100;
+        }
+
+        #keyboard-shortcuts kbd {
+            background: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="scene-canvas"></canvas>
+        
+        <div id="hud">
+            <h2>◈ CYBER-MATRIX 3D MAP ◈</h2>
+            <div class="stat">Networks: <span id="stat-networks">0</span></div>
+            <div class="stat">Devices: <span id="stat-devices">0</span></div>
+            <div class="stat">Selected: <span id="stat-selected">None</span></div>
+            <div class="stat">FPS: <span id="stat-fps">0</span></div>
+        </div>
+
+        <div id="controls">
+            <h3>FILTERS & SEARCH</h3>
+            <input type="text" id="search-box" placeholder="Search SSID, MAC, IP..." />
+            <select id="security-filter">
+                <option value="">All Security Types</option>
+                <option value="Open">Open</option>
+                <option value="WEP">WEP</option>
+                <option value="WPA">WPA</option>
+                <option value="WPA2">WPA2</option>
+                <option value="WPA3">WPA3</option>
+            </select>
+            <label>Signal Strength:</label>
+            <input type="range" id="strength-slider" min="0" max="100" value="0" />
+            <span id="strength-value">0%</span>
+            <select id="vendor-filter">
+                <option value="">All Vendors</option>
+            </select>
+            <button id="reset-filters">Reset Filters</button>
+            <button id="refresh-data">Refresh Data</button>
+        </div>
+
+        <div id="side-panel">
+            <h3>◈ NODE DETAILS ◈</h3>
+            <div id="panel-content"></div>
+        </div>
+
+        <div id="tooltip"></div>
+
+        <div id="status-indicator" class="online">
+            <span id="status-text">● CONNECTED</span>
+        </div>
+
+        <div class="empty-state">
+            <h2>◈ NO NETWORKS DETECTED ◈</h2>
+            <p>Waiting for network discovery...</p>
+            <p style="margin-top: 10px; font-size: 12px;">Click "Refresh Data" or run a network scan</p>
+        </div>
+
+        <div id="keyboard-shortcuts">
+            <kbd>F</kbd> Focus | <kbd>L</kbd> Labels | <kbd>H</kbd> HUD | <kbd>ESC</kbd> Close
+        </div>
+    </div>
+
+    <script type="module">
+        // Import normalizer (inline for now, would be external in production)
+        import normalizer from '../src/lib/networkNormalizer.js';
+
+        // Configuration
+        const API_BASE = 'http://127.0.0.1:5000';
+        const WS_URL = 'http://127.0.0.1:5000';
+        
+        // State
+        let scene, camera, renderer;
+        let networkNodes = new Map();
+        let selectedNode = null;
+        let raycaster, mouse;
+        let socket;
+        let isOnline = false;
+        let animationId;
+        let instancingEnabled = false;
+
+        // Initialize Three.js scene
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = 30;
+
+            // Renderer
+            const canvas = document.getElementById('scene-canvas');
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0x00ff41, 1, 100);
+            pointLight.position.set(0, 20, 20);
+            scene.add(pointLight);
+
+            // Grid
+            const gridHelper = new THREE.GridHelper(50, 50, 0x00ff41, 0x003300);
+            scene.add(gridHelper);
+
+            // Raycaster for mouse interaction
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Debug
+            window.__mapDebug = () => ({
+                sceneNodeCount: networkNodes.size,
+                isOnline,
+                selectedNode: selectedNode?.userData?.id
+            });
+        }
+
+        // Create network node
+        function createNetworkNode(network) {
+            const { id, ssid, strength, security, gps, hash } = network;
+
+            // Calculate position
+            let position;
+            if (gps && gps.lat && gps.lon) {
+                position = normalizer.calculateGPSPosition(gps, { lat: 0, lon: 0 });
+            }
+            if (!position) {
+                position = normalizer.calculateRadialPosition(hash, strength, 15);
+            }
+
+            // Geometry based on strength
+            const size = 0.3 + strength * 0.7;
+            const geometry = new THREE.SphereGeometry(size, 16, 16);
+
+            // Material based on security
+            const color = normalizer.getSecurityColor(security);
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.3 + strength * 0.3,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(position.x, position.y, position.z);
+            
+            // Store metadata
+            mesh.userData = {
+                ...network,
+                type: 'network',
+                originalColor: color,
+                originalEmissiveIntensity: 0.3 + strength * 0.3
+            };
+
+            // Glow effect
+            const glowGeometry = new THREE.SphereGeometry(size * 1.3, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.BackSide
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            mesh.add(glow);
+
+            // Label
+            if (strength > 0.5) {
+                // Only show labels for strong signals
+                createLabel(mesh, ssid);
+            }
+
+            return mesh;
+        }
+
+        // Create text label (sprite-based)
+        function createLabel(mesh, text) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 64;
+
+            context.fillStyle = '#000000';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            context.font = 'Bold 20px Courier New';
+            context.fillStyle = '#00ff41';
+            context.textAlign = 'center';
+            context.fillText(text.substring(0, 20), 128, 35);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(4, 1, 1);
+            sprite.position.y = mesh.userData.strength + 1;
+            mesh.add(sprite);
+        }
+
+        // Add or update network node
+        function addOrUpdateNetwork(network) {
+            if (networkNodes.has(network.id)) {
+                // Update existing
+                const mesh = networkNodes.get(network.id);
+                mesh.userData = { ...mesh.userData, ...network };
+                // Smooth transition
+                animateNodeUpdate(mesh, network);
+            } else {
+                // Add new
+                const mesh = createNetworkNode(network);
+                scene.add(mesh);
+                networkNodes.set(network.id, mesh);
+                animateNodeEntry(mesh);
+            }
+            updateStats();
+        }
+
+        // Remove network node
+        function removeNetwork(networkId) {
+            if (networkNodes.has(networkId)) {
+                const mesh = networkNodes.get(networkId);
+                animateNodeExit(mesh, () => {
+                    scene.remove(mesh);
+                    networkNodes.delete(networkId);
+                    updateStats();
+                });
+            }
+        }
+
+        // Animation: node entry
+        function animateNodeEntry(mesh) {
+            const startScale = 0.01;
+            mesh.scale.set(startScale, startScale, startScale);
+            
+            let progress = 0;
+            const animate = () => {
+                progress += 0.05;
+                if (progress >= 1) {
+                    mesh.scale.set(1, 1, 1);
+                    return;
+                }
+                const scale = startScale + (1 - startScale) * easeOutCubic(progress);
+                mesh.scale.set(scale, scale, scale);
+                requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        // Animation: node exit
+        function animateNodeExit(mesh, callback) {
+            let progress = 0;
+            const animate = () => {
+                progress += 0.08;
+                if (progress >= 1) {
+                    callback();
+                    return;
+                }
+                const scale = 1 - easeInCubic(progress);
+                mesh.scale.set(scale, scale, scale);
+                mesh.material.opacity = 1 - progress;
+                requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        // Animation: node update
+        function animateNodeUpdate(mesh, network) {
+            // Pulse effect
+            const originalScale = mesh.scale.x;
+            let progress = 0;
+            const animate = () => {
+                progress += 0.1;
+                if (progress >= Math.PI * 2) return;
+                const pulse = Math.sin(progress) * 0.1;
+                const scale = originalScale + pulse;
+                mesh.scale.set(scale, scale, scale);
+                requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        // Easing functions
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        function easeInCubic(t) {
+            return t * t * t;
+        }
+
+        // Fetch networks from API
+        async function fetchNetworks() {
+            try {
+                const response = await fetch(`${API_BASE}/api/networks`);
+                if (!response.ok) throw new Error('Failed to fetch networks');
+                const data = await response.json();
+                
+                if (data.status === 'success' && Array.isArray(data.networks)) {
+                    const normalized = normalizer.normalizeNetworks(data.networks);
+                    normalized.forEach(addOrUpdateNetwork);
+                    
+                    // Hide empty state if we have networks
+                    document.querySelector('.empty-state').classList.toggle('visible', normalized.length === 0);
+                }
+                
+                setOnlineStatus(true);
+            } catch (error) {
+                console.error('Fetch error:', error);
+                setOnlineStatus(false);
+            }
+        }
+
+        // Initialize WebSocket
+        function initWebSocket() {
+            socket = io(WS_URL, {
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                console.log('WebSocket connected');
+                setOnlineStatus(true);
+                socket.emit('subscribe_networks');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('WebSocket disconnected');
+                setOnlineStatus(false);
+            });
+
+            socket.on('network_update', (update) => {
+                const { type, data } = update;
+                const normalized = normalizer.normalizeNetwork(data);
+                
+                if (type === 'add' || type === 'update') {
+                    addOrUpdateNetwork(normalized);
+                } else if (type === 'remove') {
+                    removeNetwork(normalized.id);
+                }
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('WebSocket error:', error);
+                setOnlineStatus(false);
+            });
+        }
+
+        // Set online status
+        function setOnlineStatus(online) {
+            isOnline = online;
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+            
+            if (online) {
+                indicator.className = 'online';
+                text.textContent = '● CONNECTED';
+            } else {
+                indicator.className = 'offline';
+                text.textContent = '● OFFLINE';
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('stat-networks').textContent = networkNodes.size;
+            document.getElementById('stat-devices').textContent = networkNodes.size;
+            document.getElementById('stat-selected').textContent = selectedNode ? selectedNode.userData.ssid : 'None';
+        }
+
+        // Handle mouse move (tooltip)
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(Array.from(networkNodes.values()));
+
+            const tooltip = document.getElementById('tooltip');
+            if (intersects.length > 0) {
+                const node = intersects[0].object;
+                const data = node.userData;
+                
+                tooltip.innerHTML = `
+                    <strong>${data.ssid}</strong><br>
+                    MAC: ${data.mac}<br>
+                    ${data.ip ? `IP: ${data.ip}<br>` : ''}
+                    Security: ${data.security}<br>
+                    Signal: ${Math.round(data.strength * 100)}%
+                `;
+                tooltip.style.display = 'block';
+                tooltip.style.left = event.clientX + 15 + 'px';
+                tooltip.style.top = event.clientY + 15 + 'px';
+
+                // Highlight
+                node.material.emissiveIntensity = 0.8;
+            } else {
+                tooltip.style.display = 'none';
+                // Reset highlight
+                networkNodes.forEach(node => {
+                    if (node !== selectedNode) {
+                        node.material.emissiveIntensity = node.userData.originalEmissiveIntensity;
+                    }
+                });
+            }
+        }
+
+        // Handle click
+        function onClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(Array.from(networkNodes.values()));
+
+            if (intersects.length > 0) {
+                const node = intersects[0].object;
+                selectNode(node);
+            } else {
+                deselectNode();
+            }
+        }
+
+        // Select node
+        function selectNode(node) {
+            // Deselect previous
+            if (selectedNode) {
+                selectedNode.material.emissiveIntensity = selectedNode.userData.originalEmissiveIntensity;
+            }
+
+            selectedNode = node;
+            node.material.emissiveIntensity = 1.0;
+
+            // Show side panel
+            const panel = document.getElementById('side-panel');
+            const content = document.getElementById('panel-content');
+            const data = node.userData;
+
+            content.innerHTML = `
+                <div class="detail"><strong>SSID:</strong> ${data.ssid}</div>
+                <div class="detail"><strong>BSSID:</strong> ${data.bssid}</div>
+                <div class="detail"><strong>MAC:</strong> ${data.mac}</div>
+                ${data.ip ? `<div class="detail"><strong>IP:</strong> ${data.ip}</div>` : ''}
+                <div class="detail"><strong>Vendor:</strong> ${data.vendor}</div>
+                <div class="detail"><strong>Channel:</strong> ${data.channel}</div>
+                <div class="detail"><strong>Frequency:</strong> ${data.frequency} MHz</div>
+                <div class="detail"><strong>Security:</strong> ${data.security}</div>
+                <div class="detail"><strong>Signal:</strong> ${Math.round(data.strength * 100)}% (${data.signal_dbm} dBm)</div>
+                <div class="detail"><strong>Last Seen:</strong> ${new Date(data.last_seen).toLocaleString()}</div>
+                <div style="margin-top: 20px;">
+                    <button onclick="copyToClipboard('${data.mac}')">Copy MAC</button>
+                    <button onclick="copyToClipboard('${data.ip}')">Copy IP</button>
+                    <button onclick="window.open('https://www.wireshark.org/tools/oui-lookup.html?oui=${data.mac.split(':').slice(0,3).join('')}', '_blank')">Lookup Vendor</button>
+                    <button onclick="exportNodeData('${data.id}')">Export JSON</button>
+                </div>
+            `;
+            panel.classList.add('visible');
+            updateStats();
+        }
+
+        // Deselect node
+        function deselectNode() {
+            if (selectedNode) {
+                selectedNode.material.emissiveIntensity = selectedNode.userData.originalEmissiveIntensity;
+                selectedNode = null;
+            }
+            document.getElementById('side-panel').classList.remove('visible');
+            updateStats();
+        }
+
+        // Copy to clipboard
+        window.copyToClipboard = (text) => {
+            navigator.clipboard.writeText(text).then(() => {
+                alert(`Copied: ${text}`);
+            });
+        };
+
+        // Export node data
+        window.exportNodeData = (nodeId) => {
+            const node = networkNodes.get(nodeId);
+            if (node) {
+                const data = JSON.stringify(node.userData, null, 2);
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `network_${nodeId}.json`;
+                a.click();
+            }
+        };
+
+        // Focus on selected node
+        function focusOnNode(node) {
+            if (!node) return;
+            const targetPos = node.position;
+            animateCameraTo(
+                targetPos.x,
+                targetPos.y,
+                targetPos.z + 10
+            );
+        }
+
+        // Animate camera
+        function animateCameraTo(x, y, z) {
+            const start = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+            const end = { x, y, z };
+            let progress = 0;
+            
+            const animate = () => {
+                progress += 0.02;
+                if (progress >= 1) {
+                    camera.position.set(end.x, end.y, end.z);
+                    camera.lookAt(end.x, end.y, end.z - 10);
+                    return;
+                }
+                const t = easeOutCubic(progress);
+                camera.position.x = start.x + (end.x - start.x) * t;
+                camera.position.y = start.y + (end.y - start.y) * t;
+                camera.position.z = start.z + (end.z - start.z) * t;
+                camera.lookAt(end.x, end.y, end.z - 10);
+                requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const searchTerm = document.getElementById('search-box').value.toLowerCase();
+            const securityFilter = document.getElementById('security-filter').value;
+            const strengthThreshold = parseInt(document.getElementById('strength-slider').value) / 100;
+            const vendorFilter = document.getElementById('vendor-filter').value;
+
+            networkNodes.forEach((node) => {
+                const data = node.userData;
+                let visible = true;
+
+                if (searchTerm && !(
+                    data.ssid.toLowerCase().includes(searchTerm) ||
+                    data.mac.toLowerCase().includes(searchTerm) ||
+                    (data.ip && data.ip.toLowerCase().includes(searchTerm))
+                )) {
+                    visible = false;
+                }
+
+                if (securityFilter && data.security !== securityFilter) {
+                    visible = false;
+                }
+
+                if (data.strength < strengthThreshold) {
+                    visible = false;
+                }
+
+                if (vendorFilter && data.vendor !== vendorFilter) {
+                    visible = false;
+                }
+
+                node.visible = visible;
+            });
+        }
+
+        // Reset filters
+        document.getElementById('reset-filters').addEventListener('click', () => {
+            document.getElementById('search-box').value = '';
+            document.getElementById('security-filter').value = '';
+            document.getElementById('strength-slider').value = '0';
+            document.getElementById('vendor-filter').value = '';
+            document.getElementById('strength-value').textContent = '0%';
+            networkNodes.forEach(node => node.visible = true);
+        });
+
+        // Strength slider
+        document.getElementById('strength-slider').addEventListener('input', (e) => {
+            document.getElementById('strength-value').textContent = e.target.value + '%';
+            applyFilters();
+        });
+
+        // Search, security, vendor filters
+        document.getElementById('search-box').addEventListener('input', applyFilters);
+        document.getElementById('security-filter').addEventListener('change', applyFilters);
+        document.getElementById('vendor-filter').addEventListener('change', applyFilters);
+
+        // Refresh data
+        document.getElementById('refresh-data').addEventListener('click', fetchNetworks);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            switch(e.key.toLowerCase()) {
+                case 'f':
+                    if (selectedNode) focusOnNode(selectedNode);
+                    break;
+                case 'l':
+                    // Toggle labels (implementation can be added)
+                    break;
+                case 'h':
+                    document.getElementById('hud').style.display = 
+                        document.getElementById('hud').style.display === 'none' ? 'block' : 'none';
+                    break;
+                case 'escape':
+                    deselectNode();
+                    break;
+            }
+        });
+
+        // Animation loop
+        let lastTime = Date.now();
+        let frames = 0;
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+
+            // FPS counter
+            frames++;
+            const now = Date.now();
+            if (now - lastTime >= 1000) {
+                document.getElementById('stat-fps').textContent = frames;
+                frames = 0;
+                lastTime = now;
+            }
+
+            // Rotate camera around scene
+            const time = Date.now() * 0.0001;
+            camera.position.x = Math.cos(time) * 30;
+            camera.position.z = Math.sin(time) * 30;
+            camera.lookAt(scene.position);
+
+            // Animate nodes (pulse)
+            networkNodes.forEach((node, id) => {
+                const pulseSpeed = 0.001 + node.userData.strength * 0.002;
+                const pulse = Math.sin(Date.now() * pulseSpeed) * 0.1;
+                node.material.emissiveIntensity = node.userData.originalEmissiveIntensity + pulse;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Mouse events
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('click', onClick);
+
+        // Initialize
+        initScene();
+        initWebSocket();
+        fetchNetworks();
+        animate();
+
+        // Initial fetch and periodic refresh
+        setInterval(fetchNetworks, 30000); // Refresh every 30 seconds
+
+        console.log('CYBER-MATRIX 3D Map initialized');
+    </script>
+</body>
+</html>
