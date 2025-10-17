@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "fs": {
+      "command": "server-filesystem",
+      "args": ["/workspace"],
+      "env": { "MCP_FS_MODE": "rw" }
+    },
+    "http": {
+      "command": "server-http",
+      "args": [],
+      "env": { "MCP_HTTP_DEFAULT_BASE_URL": "http://127.0.0.1:5000" }
+    },
+    "git": {
+      "command": "server-git",
+      "args": [],
+      "env": {
+        "MCP_GIT_WORKDIR": "/workspace",
+        "MCP_GIT_ALLOW_PUSH": "false"
+      }
+    }
+  }
+}

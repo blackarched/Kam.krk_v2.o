@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CYBER‑MATRIX MCP Integration Guide (Local, Secure, Reproducible)</title>
+  <style>
+    :root {
+      --bg: #0b0b12;
+      --panel: #12121c;
+      --panel-2: #171727;
+      --text: #e8e8ef;
+      --muted: #a8a8c0;
+      --accent: #c000ff;
+      --accent-2: #ff00de;
+      --good: #00ff41;
+      --warn: #ffcc00;
+      --bad: #ff4d4d;
+      --code-bg: #0f0f19;
+      --border: #2a2a3f;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; }
+    a { color: var(--accent-2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    header { position: sticky; top: 0; background: linear-gradient(0deg, rgba(11,11,18,0.9), rgba(11,11,18,0.98)); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); z-index: 50; }
+    header .inner { display: flex; gap: 20px; align-items: center; padding: 14px 24px; }
+    .brand { font-weight: 800; letter-spacing: .3px; }
+    .tag { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; }
+    nav { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 8px 24px 16px; border-top: 1px solid var(--border); }
+    nav a { font-size: 14px; color: var(--muted); }
+    h1, h2, h3 { letter-spacing: .2px; }
+    h1 { font-size: 28px; margin: 24px 0 8px; }
+    h2 { font-size: 22px; margin: 28px 0 10px; }
+    h3 { font-size: 18px; margin: 22px 0 8px; color: var(--muted); }
+    .panel { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin: 16px 0; }
+    .grid { display: grid; gap: 16px; }
+    .grid.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .grid.three { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .callout { border-left: 4px solid var(--accent); padding: 12px 14px; background: rgba(192,0,255,0.06); border-radius: 8px; }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .muted { color: var(--muted); }
+    .kbd { padding: 2px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; background: var(--code-bg); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; overflow: auto; position: relative; }
+    .copy { position: absolute; top: 8px; right: 8px; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+    .copy:hover { color: var(--text); border-color: var(--accent); }
+    details { border: 1px dashed var(--border); border-radius: 10px; padding: 10px 12px; }
+    details > summary { cursor: pointer; font-weight: 600; }
+    .tooltip { border-bottom: 1px dashed var(--muted); position: relative; cursor: help; }
+    .tooltip:hover .tip { opacity: 1; transform: translateY(-2px); pointer-events: auto; }
+    .tip { transition: .18s ease; pointer-events: none; opacity: 0; position: absolute; left: 0; top: -8px; transform: translateY(-6px); background: #0e0e17; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; width: min(520px, 90vw); z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    ul { margin: 8px 0 8px 20px; }
+    li { margin: 6px 0; }
+    .step { counter-increment: step; position: relative; padding-left: 44px; }
+    .step:before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; line-height: 28px; text-align: center; background: linear-gradient(180deg, var(--accent), var(--accent-2)); color: white; border-radius: 50%; font-weight: 800; box-shadow: 0 6px 14px rgba(192,0,255,.3); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    .hr { height: 1px; background: var(--border); margin: 22px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <div class="brand">CYBER‑MATRIX v8 • MCP Integration Guide</div>
+      <span class="tag">Localhost • Secure Defaults • Reproducible</span>
+    </div>
+    <nav class="container">
+      <a href="#overview">Overview</a>
+      <a href="#safety">Safety & Constraints</a>
+      <a href="#prereq">Prerequisites</a>
+      <a href="#env">Environment (.env)</a>
+      <a href="#backend">Start Backend</a>
+      <a href="#mcp">Install MCP Servers</a>
+      <a href="#client">Client Config</a>
+      <a href="#assistant">Assistant Mode</a>
+      <a href="#recipes">MCP Task Recipes</a>
+      <a href="#flows">Automated Flows</a>
+      <a href="#troubleshoot">Troubleshooting</a>
+      <a href="#appendix">Appendix</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section id="overview">
+      <h1>What this guide gives you</h1>
+      <div class="panel">
+        <p>This is a ready‑to‑execute plan to integrate MCP servers with this project, automate secure API calls, and streamline development without exposing anything beyond <span class="kbd">127.0.0.1</span>.</p>
+        <div class="grid three">
+          <div class="callout">
+            <strong>Security</strong><br/>Run validations, keep endpoints simulated by default, log + DB audit.
+          </div>
+          <div class="callout">
+            <strong>Ops automation</strong><br/>Kickoff scans, poll progress, capture artifacts via MCP.
+          </div>
+          <div class="callout">
+            <strong>Dev workflow</strong><br/>Filesystem edits, HTTP calls, Git commits—all local and safe.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="safety">
+      <h2>Safety & constraints (must follow)</h2>
+      <div class="panel">
+        <ul>
+          <li><span class="good">Bind only</span> to <span class="kbd">127.0.0.1</span> (never <span class="bad">0.0.0.0</span>).</li>
+          <li>Use the secure modules by default: <span class="mono">*_secure.py</span>, <span class="mono">secure_network_tools.py</span>.</li>
+          <li>Attack endpoints remain enabled but are <em>simulation only</em>.</li>
+          <li>Only test on networks you <strong>own</strong> or have <strong>written permission</strong> to test.</li>
+          <li>Before any code edits, run <span class="kbd">python3 test_security.py</span>.</li>
+          <li>Review <span class="mono">cyber_matrix.db</span> and <span class="mono">cyber_matrix.log</span> for audit.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="prereq">
+      <h2>Prerequisites</h2>
+      <ol>
+        <li class="step">System packages
+          <div class="panel">
+            <div class="tooltip">Why these?
+              <div class="tip">Python build tooling, SQLite for DB inspection, and optional network tools used by secure modules to improve scan fidelity.</div>
+            </div>
+            <pre><button class="copy" data-clip="apt1">Copy</button><code id="apt1">sudo apt-get update
+sudo apt-get install -y python3-pip python3-venv python3-dev build-essential sqlite3
+# Optional but recommended
+sudo apt-get install -y nmap net-tools iproute2</code></pre>
+          </div>
+        </li>
+        <li class="step">Node.js for official MCP servers
+          <div class="panel">
+            <pre><button class="copy" data-clip="node1">Copy</button><code id="node1">curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+node -v
+npm -v</code></pre>
+          </div>
+        </li>
+        <li class="step">Python dependencies
+          <div class="panel">
+            <details><summary>If <span class="mono">python3-venv</span> is missing or <span class="mono">ensurepip</span> error appears</summary>
+              <div class="panel"><pre><button class="copy" data-clip="venvfix">Copy</button><code id="venvfix">sudo apt-get install -y python3-venv</code></pre></div>
+            </details>
+            <pre><button class="copy" data-clip="pip1">Copy</button><code id="pip1">cd /workspace
+python3 -m venv .venv || true
+. .venv/bin/activate 2>/dev/null || true
+pip3 install --user -r requirements.txt</code></pre>
+            <div class="muted">Tip: If you see PATH warnings for <span class="mono">~/.local/bin</span>, add this to your shell: <span class="kbd">export PATH="$HOME/.local/bin:$PATH"</span>.</div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section id="env">
+      <h2>Environment configuration (.env)</h2>
+      <div class="panel">
+        <p>Create <span class="mono">/workspace/.env</span> with secure defaults.</p>
+        <pre><button class="copy" data-clip="env1">Copy</button><code id="env1">cat > /workspace/.env <<'EOF'
+CYBER_MATRIX_HOST=127.0.0.1
+CYBER_MATRIX_PORT=5000
+CYBER_MATRIX_API_KEY=change-me-32+chars
+LAB_MODE=false
+CYBER_MATRIX_DB_PATH=/workspace/cyber_matrix.db
+CYBER_MATRIX_LOG_PATH=/workspace/cyber_matrix.log
+EOF</code></pre>
+        <pre><button class="copy" data-clip="env2">Copy</button><code id="env2">set -a && . /workspace/.env && set +a</code></pre>
+        <details><summary>Don’t have a key yet? Generate and activate via API</summary>
+          <div class="panel">
+            <pre><button class="copy" data-clip="key1">Copy</button><code id="key1">API_KEY=$(curl -s -X POST http://127.0.0.1:5000/api/auth/generate-key | jq -r .api_key)
+curl -s -X POST http://127.0.0.1:5000/api/auth/activate \
+  -H "Content-Type: application/json" \
+  -d "{\"api_key\":\"$API_KEY\"}"
+export CYBER_MATRIX_API_KEY="$API_KEY"
+curl -s http://127.0.0.1:5000/api/auth/verify -H "X-API-Key: $CYBER_MATRIX_API_KEY"</code></pre>
+            <div class="muted">Note: The server stores a <em>hash</em> in-memory; you’ll pass the raw key via <span class="kbd">X-API-Key</span>.</div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section id="backend">
+      <h2>Start the backend (localhost only)</h2>
+      <div class="panel">
+        <pre><button class="copy" data-clip="run1">Copy</button><code id="run1">cd /workspace
+. .venv/bin/activate 2>/dev/null || true
+set -a && . ./.env && set +a
+python3 test_security.py   # pre-checks
+python3 app.py</code></pre>
+        <div class="grid two">
+          <div class="callout">
+            <strong>Health checks</strong>
+            <pre><button class="copy" data-clip="health1">Copy</button><code id="health1">curl -s http://127.0.0.1:5000/ | head -n1
+curl -s http://127.0.0.1:5000/api/auth/verify -H "X-API-Key: $CYBER_MATRIX_API_KEY"</code></pre>
+          </div>
+          <div class="callout">
+            <strong>State & audit</strong>
+            <ul>
+              <li>DB: <span class="mono">/workspace/cyber_matrix.db</span></li>
+              <li>Logs: <span class="mono">/workspace/cyber_matrix.log</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="mcp">
+      <h2>Install official MCP servers</h2>
+      <div class="panel grid three">
+        <div>
+          <h3>Filesystem</h3>
+          <pre><button class="copy" data-clip="mcpfs">Copy</button><code id="mcpfs">npm i -g @modelcontextprotocol/server-filesystem@latest</code></pre>
+        </div>
+        <div>
+          <h3>HTTP</h3>
+          <pre><button class="copy" data-clip="mcphttp">Copy</button><code id="mcphttp">npm i -g @modelcontextprotocol/server-http@latest</code></pre>
+        </div>
+        <div>
+          <h3>Git</h3>
+          <pre><button class="copy" data-clip="mcpgit">Copy</button><code id="mcpgit">npm i -g @modelcontextprotocol/server-git@latest</code></pre>
+        </div>
+      </div>
+      <details><summary>Quick sanity checks</summary>
+        <div class="panel">
+          <pre><button class="copy" data-clip="mcpcheck">Copy</button><code id="mcpcheck">server-filesystem --help >/dev/null 2>&1 && echo "filesystem OK"
+server-http --help >/dev/null 2>&1 && echo "http OK"
+server-git --help >/dev/null 2>&1 && echo "git OK"</code></pre>
+        </div>
+      </details>
+    </section>
+
+    <section id="client">
+      <h2>Configure your MCP client</h2>
+      <div class="panel">
+        <p>Create <span class="mono">/workspace/mcp.config.json</span> and point your MCP client to it (or copy the <span class="mono">mcpServers</span> section into your client settings).</p>
+        <pre><button class="copy" data-clip="cfg1">Copy</button><code id="cfg1">cat > /workspace/mcp.config.json <<'JSON'
+{
+  "mcpServers": {
+    "fs": {
+      "command": "server-filesystem",
+      "args": ["/workspace"],
+      "env": { "MCP_FS_MODE": "rw" }
+    },
+    "http": {
+      "command": "server-http",
+      "args": [],
+      "env": { "MCP_HTTP_DEFAULT_BASE_URL": "http://127.0.0.1:5000" }
+    },
+    "git": {
+      "command": "server-git",
+      "args": [],
+      "env": {
+        "MCP_GIT_WORKDIR": "/workspace",
+        "MCP_GIT_ALLOW_PUSH": "false"
+      }
+    }
+  }
+}
+JSON</code></pre>
+        <div class="hr"></div>
+        <div class="grid two">
+          <div>
+            <h3>HTTP usage rules</h3>
+            <ul>
+              <li>Include header <span class="kbd">X-API-Key: $CYBER_MATRIX_API_KEY</span> on protected routes.</li>
+              <li>Base URL defaults to <span class="kbd">http://127.0.0.1:5000</span>.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Filesystem & Git</h3>
+            <ul>
+              <li>FS root limited to <span class="mono">/workspace</span>.</li>
+              <li>Git commits stay local; push disabled by default.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="assistant">
+      <h2>Assistant Mode (use MCP servers to complete kam.krk_v2.o)</h2>
+      <div class="panel">
+        <p>This section shows how to use <strong>MCP servers as assistants</strong> (not embedded) to drive development of the <span class="mono">kam.krk_v2.o</span> project: editing files, testing endpoints, and committing changes—fully local and secure.</p>
+        <div class="grid three">
+          <div class="callout">
+            <strong>Servers to enable</strong>
+            <ul>
+              <li><b>Filesystem</b>: read/write under <span class="mono">/workspace</span></li>
+              <li><b>HTTP</b>: call <span class="mono">http://127.0.0.1:5000</span> with <span class="kbd">X-API-Key</span></li>
+              <li><b>Git</b>: status/diff/commit locally (push disabled)</li>
+            </ul>
+          </div>
+          <div class="callout">
+            <strong>Client checks</strong>
+            <ul>
+              <li>Confirm tools list shows fs/http/git</li>
+              <li>Run a test HTTP GET to <span class="mono">/api/auth/verify</span></li>
+              <li>Read <span class="mono">/workspace/app.py</span> via FS</li>
+            </ul>
+          </div>
+          <div class="callout">
+            <strong>Guardrails</strong>
+            <ul>
+              <li>Bind to <span class="mono">127.0.0.1</span> only</li>
+              <li>Prefer secure modules (<span class="mono">*_secure.py</span>)</li>
+              <li>Commit locally; avoid pushes</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="recipes">
+      <h2>MCP Task Recipes for kam.krk_v2.o</h2>
+      <div class="panel">
+        <h3>Recipe A — Verify API access via HTTP server</h3>
+        <p>Use the HTTP server to talk to the running Flask app with your API key.</p>
+        <pre><button class="copy" data-clip="rA1">Copy</button><code id="rA1"># HTTP GET (send header X-API-Key)
+# Method: GET
+# URL: http://127.0.0.1:5000/api/auth/verify
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY" }
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">If verification fails, (1) ensure the backend is running, (2) set <span class="kbd">CYBER_MATRIX_API_KEY</span> using the steps in the Environment section.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe B — Edit code with Filesystem, commit with Git</h3>
+        <ol>
+          <li>Open a file with FS (e.g., <span class="mono">app.py</span> lines 205–212 for <span class="mono">sanitize_input</span>).</li>
+          <li>Edit carefully; keep secure behavior and validations.</li>
+          <li>Use Git: status → diff → add → commit (local only).</li>
+        </ol>
+        <pre><button class="copy" data-clip="rB1">Copy</button><code id="rB1"># Git (via MCP git server)
+# status
+# diff
+# add paths: app.py (or changed files)
+# commit message: "Improve input sanitization and validation behavior"
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">Do not push by default. Keep changes on the current branch until reviewed. Set <span class="mono">MCP_GIT_ALLOW_PUSH=true</span> only in controlled environments.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe C — Start a network scan and poll progress (HTTP)</h3>
+        <pre><button class="copy" data-clip="rC1">Copy</button><code id="rC1"># Start scan
+# Method: POST
+# URL: http://127.0.0.1:5000/api/network/scan
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY", "Content-Type": "application/json" }
+# Body: { "ip_range": "192.168.1.0/24" }
+
+# Poll progress
+# Method: GET
+# URL: http://127.0.0.1:5000/api/scan/progress
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY" }
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">If <span class="mono">nmap</span> is not present, results still work with ARP and basic checks. Install <span class="kbd">sudo apt-get install -y nmap</span> for richer output.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe D — Port scan and basic vulnerability snapshot (HTTP)</h3>
+        <pre><button class="copy" data-clip="rD1">Copy</button><code id="rD1"># Port scan
+# POST http://127.0.0.1:5000/api/port/scan
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY", "Content-Type": "application/json" }
+# Body: { "target_ip": "192.168.1.10", "port_range": "22,80,443" }
+
+# Vulnerability scan
+# POST http://127.0.0.1:5000/api/vulnerability/scan
+# Headers: { "X-API-Key": "$CYBER_MATRIX_API_KEY", "Content-Type": "application/json" }
+# Body: { "target_ip": "192.168.1.10", "intensity": "medium" }
+</code></pre>
+        <details><summary>Tip</summary>
+          <div class="panel">Attack routes are simulations; use them for educational flows without real exploitation.</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe E — Fix a failing security test</h3>
+        <ol>
+          <li>Reproduce by running <span class="kbd">python3 test_security.py</span> in a terminal.</li>
+          <li>Use FS to open the relevant function (e.g., <span class="mono">sanitize_input</span> in <span class="mono">app.py</span>).</li>
+          <li>Adjust logic minimally; keep regex removing dangerous characters and length limits.</li>
+          <li>Commit via Git with a clear message focused on the <em>why</em>.</li>
+          <li>Verify by calling key endpoints with HTTP to ensure no regressions (e.g., <span class="mono">/api/port/scan</span> rejects bad input).</li>
+        </ol>
+        <details><summary>Tip</summary>
+          <div class="panel">If a test expects specific sanitization, mirror that behavior while preserving security invariants (no <span class="mono">shell=True</span>, input length caps, strict IP/port validation).</div>
+        </details>
+        <div class="hr"></div>
+
+        <h3>Recipe F — Capture artifacts for review (FS + HTTP)</h3>
+        <ol>
+          <li>After scans, fetch charts/metrics with HTTP for quick summaries.</li>
+          <li>Use FS to copy <span class="mono">cyber_matrix.log</span> and an SQLite backup of <span class="mono">cyber_matrix.db</span> into an <span class="mono">artifacts/</span> folder.</li>
+          <li>Commit artifacts with Git if desired (local audit trail).</li>
+        </ol>
+        <pre><button class="copy" data-clip="rF1">Copy</button><code id="rF1"># Example artifact steps (run in terminal)
+mkdir -p /workspace/artifacts 2>/dev/null || true
+cp /workspace/cyber_matrix.log \
+  "/workspace/artifacts/cyber_matrix-$(date +%F-%H%M%S).log" 2>/dev/null || true
+sqlite3 /workspace/cyber_matrix.db \
+  ".backup '/workspace/artifacts/cyber_matrix-$(date +%F-%H%M%S).db'" 2>/dev/null || true
+</code></pre>
+      </div>
+    </section>
+
+    <section id="flows">
+      <h2>Automated flows (run via MCP)</h2>
+      <div class="panel">
+        <h3>1) Pre‑flight security tests</h3>
+        <pre><button class="copy" data-clip="flow1">Copy</button><code id="flow1">cd /workspace
+. .venv/bin/activate 2>/dev/null || true
+python3 test_security.py</code></pre>
+        <details><summary>If a test fails</summary>
+          <div class="panel">Re‑run, read the failure, and continue with caution. The app still enforces validation and safe execution. Prefer not to edit core sanitization unless necessary.</div>
+        </details>
+        <div class="hr"></div>
+        <h3>2) Network scan (async) + progress</h3>
+        <pre><button class="copy" data-clip="flow2">Copy</button><code id="flow2">curl -s -X POST "http://127.0.0.1:5000/api/network/scan" \
+  -H "X-API-Key: $CYBER_MATRIX_API_KEY" -H "Content-Type: application/json" \
+  -d '{"ip_range":"192.168.1.0/24"}'
+
+# Poll until completed
+curl -s "http://127.0.0.1:5000/api/scan/progress" -H "X-API-Key: $CYBER_MATRIX_API_KEY" | jq .</code></pre>
+        <div class="hr"></div>
+        <h3>3) Port scan + vulnerability snapshot</h3>
+        <pre><button class="copy" data-clip="flow3">Copy</button><code id="flow3">curl -s -X POST "http://127.0.0.1:5000/api/port/scan" \
+  -H "X-API-Key: $CYBER_MATRIX_API_KEY" -H "Content-Type: application/json" \
+  -d '{"target_ip":"192.168.1.10","port_range":"22,80,443"}' | jq .
+
+curl -s -X POST "http://127.0.0.1:5000/api/vulnerability/scan" \
+  -H "X-API-Key: $CYBER_MATRIX_API_KEY" -H "Content-Type: application/json" \
+  -d '{"target_ip":"192.168.1.10","intensity":"medium"}' | jq .</code></pre>
+        <div class="hr"></div>
+        <h3>4) Interfaces & monitor mode</h3>
+        <pre><button class="copy" data-clip="flow4">Copy</button><code id="flow4">curl -s http://127.0.0.1:5000/api/network/interfaces | jq .
+curl -s -X POST http://127.0.0.1:5000/api/network/monitor \
+  -H "Content-Type: application/json" \
+  -d '{"interface":"wlan0","enable":true}' | jq .</code></pre>
+        <div class="hr"></div>
+        <h3>5) Charts & metrics</h3>
+        <pre><button class="copy" data-clip="flow5">Copy</button><code id="flow5">curl -s http://127.0.0.1:5000/api/system/metrics | jq .
+curl -s http://127.0.0.1:5000/api/charts/scan_results | jq .
+curl -s http://127.0.0.1:5000/api/charts/port_status | jq .
+curl -s http://127.0.0.1:5000/api/charts/vulnerability | jq .
+curl -s http://127.0.0.1:5000/api/charts/system_metrics | jq .</code></pre>
+        <div class="hr"></div>
+        <h3>6) Artifacts & audit</h3>
+        <details><summary>Save logs and DB snapshots</summary>
+          <div class="panel">
+            <pre><button class="copy" data-clip="flow6">Copy</button><code id="flow6"># Logs
+cp /workspace/cyber_matrix.log "/workspace/artifacts/cyber_matrix-$(date +%F-%H%M%S).log" 2>/dev/null || true
+
+# SQLite snapshot
+sqlite3 /workspace/cyber_matrix.db ".backup '/workspace/artifacts/cyber_matrix-$(date +%F-%H%M%S).db'" 2>/dev/null || true</code></pre>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section id="troubleshoot">
+      <h2>Troubleshooting (no‑fail tips)</h2>
+      <div class="panel grid two">
+        <div>
+          <h3>Virtualenv errors</h3>
+          <ul>
+            <li><strong>ensurepip not available</strong>: <span class="kbd">sudo apt-get install -y python3-venv</span></li>
+            <li><strong>Use without venv</strong>: <span class="kbd">pip3 install --user -r requirements.txt</span></li>
+            <li><strong>PATH warnings</strong>: add <span class="kbd">export PATH="$HOME/.local/bin:$PATH"</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Network tools missing</h3>
+          <ul>
+            <li><strong>ip not found</strong>: <span class="kbd">sudo apt-get install -y iproute2</span> (app falls back to psutil).</li>
+            <li><strong>nmap not installed</strong>: scans work, but results improve with <span class="kbd">sudo apt-get install -y nmap</span>.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>API key issues</h3>
+          <ul>
+            <li>Regenerate with <span class="kbd">/api/auth/generate-key</span> then <span class="kbd">/api/auth/activate</span>.</li>
+            <li>Always send <span class="kbd">X-API-Key</span> on protected routes.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>DB/Log visibility</h3>
+          <ul>
+            <li>DB created on first write; logs rotate when <span class="mono">DEBUG=False</span>.</li>
+            <li>Keep server single-instance to avoid DB locks.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="appendix">
+      <h2>Appendix</h2>
+      <div class="panel">
+        <h3>Directory layout</h3>
+        <pre><code>/workspace
+├─ app.py
+├─ secure_network_tools.py
+├─ detect_secure.py
+├─ kamkrk_v2_secure.py
+├─ networks_secure.py
+├─ network_interface_manager.py
+├─ kamkrk_v2.html
+├─ requirements.txt
+├─ test_security.py
+├─ cyber_matrix.db        # created on first run
+├─ cyber_matrix.log       # created on first run
+├─ .env
+└─ mcp.config.json</code></pre>
+        <div class="hr"></div>
+        <h3>Key endpoints</h3>
+        <ul>
+          <li><span class="mono">/api/auth/generate-key</span>, <span class="mono">/api/auth/activate</span>, <span class="mono">/api/auth/verify</span></li>
+          <li><span class="mono">/api/network/scan</span> (POST), <span class="mono">/api/scan/progress</span> (GET)</li>
+          <li><span class="mono">/api/port/scan</span> (POST), <span class="mono">/api/vulnerability/scan</span> (POST)</li>
+          <li><span class="mono">/api/network/interfaces*</span>, <span class="mono">/api/system/metrics</span>, <span class="mono">/api/charts/*</span></li>
+          <li><span class="mono">/api/attack/hydra</span>, <span class="mono">/api/attack/metasploit</span> (both simulated)</li>
+        </ul>
+        <div class="callout">
+          All sensitive actions remain simulated; execution uses safe subprocess calls (no <span class="mono">shell=True</span>), strict validation, and rate limiting.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Copy-to-clipboard buttons
+    document.querySelectorAll('.copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-clip');
+        const el = document.getElementById(id);
+        const text = el?.innerText || '';
+        navigator.clipboard.writeText(text).then(() => {
+          const old = btn.textContent;
+          btn.textContent = 'Copied!';
+          btn.style.borderColor = 'var(--good)';
+          btn.style.color = 'var(--good)';
+          setTimeout(() => { btn.textContent = 'Copy'; btn.style.borderColor='var(--border)'; btn.style.color='var(--muted)'; }, 1200);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
