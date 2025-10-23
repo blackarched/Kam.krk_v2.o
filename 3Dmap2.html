@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Discovery Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #0a0a12;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: rgba(10, 15, 30, 0.9);
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: #00ffff;
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .header-btn {
+            padding: 8px 15px;
+            background: rgba(20, 25, 45, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: #00ffff;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(10, 15, 30, 0.8);
+            border-right: 1px solid rgba(0, 255, 255, 0.3);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #network-map {
+            height: 100%;
+            width: 100%;
+            background: #0a0a12;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-box {
+            background: rgba(20, 25, 45, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ffaa;
+            text-shadow: 0 0 5px rgba(0, 255, 170, 0.5);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .section {
+            background: rgba(20, 25, 45, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 5px;
+            padding: 15px;
+        }
+
+        .section-title {
+            color: #ff00ff;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .device-list {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .device-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .device-list::-webkit-scrollbar-track {
+            background: rgba(10, 15, 30, 0.5);
+        }
+
+        .device-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 5px;
+        }
+
+        .device-item {
+            background: rgba(30, 35, 60, 0.7);
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #00ffaa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .device-item:hover {
+            background: rgba(40, 45, 80, 0.9);
+            transform: translateX(5px);
+        }
+
+        .device-info {
+            flex: 1;
+        }
+
+        .device-name {
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+
+        .device-details {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .device-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-online {
+            background: #00ffaa;
+            box-shadow: 0 0 8px #00ffaa;
+        }
+
+        .status-offline {
+            background: #ff5555;
+            box-shadow: 0 0 8px #ff5555;
+        }
+
+        .status-unknown {
+            background: #ffaa00;
+            box-shadow: 0 0 8px #ffaa00;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            color: #00ffff;
+            font-size: 0.9rem;
+        }
+
+        .slider {
+            width: 100%;
+            height: 5px;
+            background: rgba(0, 255, 255, 0.2);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #00ffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(20, 25, 45, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .filter-btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+        }
+
+        .legend-text {
+            font-size: 0.9rem;
+        }
+
+        .action-btn {
+            padding: 12px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            border-radius: 5px;
+            color: #0a0a12;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            margin-top: 10px;
+        }
+
+        .action-btn:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+        }
+
+        .layer-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(10, 15, 30, 0.8);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 5px;
+            padding: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .layer-btn {
+            padding: 8px 12px;
+            background: rgba(20, 25, 45, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layer-btn.active {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+        }
+
+        .layer-btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* Custom map controls */
+        .leaflet-control-zoom a {
+            background: rgba(20, 25, 45, 0.8) !important;
+            color: #00ffff !important;
+            border: 1px solid rgba(0, 255, 255, 0.3) !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: rgba(0, 255, 255, 0.2) !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(20, 25, 45, 0.9) !important;
+            color: #e0e0e0 !important;
+            border: 1px solid rgba(0, 255, 255, 0.3) !important;
+            border-radius: 5px !important;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3) !important;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(20, 25, 45, 0.9) !important;
+            border: 1px solid rgba(0, 255, 255, 0.3) !important;
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            box-shadow: 0 0 10px #00ffff;
+            z-index: 5;
+            animation: scanMove 8s linear infinite;
+        }
+
+        @keyframes scanMove {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>NETWORK DISCOVERY MAP</h1>
+            <div class="header-controls">
+                <button class="header-btn">Export Data</button>
+                <button class="header-btn">Settings</button>
+                <button class="header-btn">Help</button>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="sidebar">
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value">47</div>
+                        <div class="stat-label">DEVICES FOUND</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">NETWORK SEGMENTS</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">42</div>
+                        <div class="stat-label">ONLINE</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">OFFLINE</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">DEVICE LIST</div>
+                    <ul class="device-list">
+                        <li class="device-item">
+                            <div class="device-info">
+                                <div class="device-name">Server-Rack-01</div>
+                                <div class="device-details">IP: 192.168.1.10 | Core Server</div>
+                            </div>
+                            <div class="device-status status-online"></div>
+                        </li>
+                        <li class="device-item">
+                            <div class="device-info">
+                                <div class="device-name">Firewall-GW</div>
+                                <div class="device-details">IP: 192.168.1.1 | Security</div>
+                            </div>
+                            <div class="device-status status-online"></div>
+                        </li>
+                        <li class="device-item">
+                            <div class="device-info">
+                                <div class="device-name">Switch-Core-01</div>
+                                <div class="device-details">IP: 192.168.1.2 | Network</div>
+                            </div>
+                            <div class="device-status status-online"></div>
+                        </li>
+                        <li class="device-item">
+                            <div class="device-info">
+                                <div class="device-name">AP-Floor2</div>
+                                <div class="device-details">IP: 192.168.1.25 | Wireless</div>
+                            </div>
+                            <div class="device-status status-offline"></div>
+                        </li>
+                        <li class="device-item">
+                            <div class="device-info">
+                                <div class="device-name">Workstation-12</div>
+                                <div class="device-details">IP: 192.168.1.45 | Endpoint</div>
+                            </div>
+                            <div class="device-status status-unknown"></div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">VISUALIZATION CONTROLS</div>
+                    <div class="controls">
+                        <div class="control-group">
+                            <div class="control-label">NETWORK VISIBILITY</div>
+                            <input type="range" min="1" max="100" value="75" class="slider">
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">FILTER BY STATUS</div>
+                            <div class="filter-buttons">
+                                <button class="filter-btn active">ALL</button>
+                                <button class="filter-btn">ONLINE</button>
+                                <button class="filter-btn">OFFLINE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">LEGEND</div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #00ffaa;"></div>
+                            <div class="legend-text">Servers & Infrastructure</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #00ffff;"></div>
+                            <div class="legend-text">Network Devices</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #ff00ff;"></div>
+                            <div class="legend-text">End User Devices</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #ffaa00;"></div>
+                            <div class="legend-text">Security Devices</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="action-btn pulse">INITIATE NETWORK SCAN</button>
+            </div>
+
+            <div class="map-container">
+                <div class="scan-line"></div>
+                <div id="network-map"></div>
+                
+                <div class="layer-controls">
+                    <button class="layer-btn active">
+                        <div style="width: 12px; height: 12px; background: #00ffaa; border-radius: 50%;"></div>
+                        Infrastructure
+                    </button>
+                    <button class="layer-btn active">
+                        <div style="width: 12px; height: 12px; background: #00ffff; border-radius: 50%;"></div>
+                        Network
+                    </button>
+                    <button class="layer-btn active">
+                        <div style="width: 12px; height: 12px; background: #ff00ff; border-radius: 50%;"></div>
+                        Endpoints
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the map with proper bounds
+        const map = L.map('network-map', {
+            zoomControl: true,
+            attributionControl: false
+        }).setView([51.505, -0.09], 16);
+
+        // Add zoom control with custom position
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
+
+        // Create a dark tile layer
+        const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Define network segments with different colors
+        const networkSegments = [
+            {
+                name: "Main Server Room",
+                color: "#00ffaa",
+                coordinates: [[51.505, -0.09], [51.505, -0.088], [51.504, -0.088], [51.504, -0.09]]
+            },
+            {
+                name: "Network Operations Center",
+                color: "#00ffff",
+                coordinates: [[51.506, -0.095], [51.506, -0.09], [51.505, -0.09], [51.505, -0.095]]
+            },
+            {
+                name: "User Workstations",
+                color: "#ff00ff",
+                coordinates: [[51.503, -0.095], [51.503, -0.09], [51.502, -0.09], [51.502, -0.095]]
+            }
+        ];
+
+        // Add network segments to the map
+        networkSegments.forEach(segment => {
+            const polygon = L.polygon(segment.coordinates, {
+                color: segment.color,
+                fillColor: segment.color,
+                fillOpacity: 0.15,
+                weight: 2,
+                opacity: 0.7
+            }).addTo(map);
+            
+            polygon.bindPopup(`<strong>${segment.name}</strong><br>Network Segment`);
+        });
+
+        // Define device types with different icons
+        const deviceTypes = {
+            server: { color: "#00ffaa", size: 12 },
+            network: { color: "#00ffff", size: 10 },
+            workstation: { color: "#ff00ff", size: 8 },
+            security: { color: "#ffaa00", size: 10 }
+        };
+
+        // Create custom device markers
+        function createDeviceIcon(type, status) {
+            const deviceType = deviceTypes[type];
+            const pulseClass = status === 'online' ? 'pulse' : '';
+            
+            return L.divIcon({
+                className: `device-marker ${pulseClass}`,
+                html: `<div style="width: ${deviceType.size}px; height: ${deviceType.size}px; background-color: ${deviceType.color}; border-radius: 50%; box-shadow: 0 0 10px ${deviceType.color};"></div>`,
+                iconSize: [deviceType.size, deviceType.size],
+                iconAnchor: [deviceType.size/2, deviceType.size/2]
+            });
+        }
+
+        // Sample device data
+        const devices = [
+            { name: "Server-Rack-01", type: "server", status: "online", lat: 51.5045, lng: -0.089 },
+            { name: "Firewall-GW", type: "security", status: "online", lat: 51.5053, lng: -0.091 },
+            { name: "Switch-Core-01", type: "network", status: "online", lat: 51.5052, lng: -0.089 },
+            { name: "AP-Floor2", type: "network", status: "offline", lat: 51.5025, lng: -0.092 },
+            { name: "Workstation-12", type: "workstation", status: "unknown", lat: 51.5025, lng: -0.093 },
+            { name: "Database-SRV", type: "server", status: "online", lat: 51.5048, lng: -0.087 },
+            { name: "Router-Main", type: "network", status: "online", lat: 51.5058, lng: -0.092 },
+            { name: "IDS-Sensor", type: "security", status: "online", lat: 51.505, lng: -0.093 },
+            { name: "Workstation-05", type: "workstation", status: "online", lat: 51.5028, lng: -0.091 },
+            { name: "Backup-SRV", type: "server", status: "online", lat: 51.5042, lng: -0.087 }
+        ];
+
+        // Add devices to the map
+        devices.forEach(device => {
+            const marker = L.marker([device.lat, device.lng], {
+                icon: createDeviceIcon(device.type, device.status)
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <strong>${device.name}</strong><br>
+                Type: ${device.type}<br>
+                Status: <span class="status-${device.status}">${device.status.toUpperCase()}</span><br>
+                Location: ${device.lat.toFixed(4)}, ${device.lng.toFixed(4)}
+            `);
+        });
+
+        // Add network connections
+        const connections = [
+            [[51.5045, -0.089], [51.5052, -0.089]],
+            [[51.5052, -0.089], [51.5053, -0.091]],
+            [[51.5052, -0.089], [51.5048, -0.087]],
+            [[51.5052, -0.089], [51.5042, -0.087]],
+            [[51.5053, -0.091], [51.5058, -0.092]],
+            [[51.505, -0.093], [51.5053, -0.091]],
+            [[51.5052, -0.089], [51.5025, -0.092]],
+            [[51.5025, -0.092], [51.5028, -0.091]],
+            [[51.5025, -0.092], [51.5025, -0.093]]
+        ];
+
+        connections.forEach(connection => {
+            L.polyline(connection, {
+                color: '#00ffff',
+                weight: 2,
+                opacity: 0.5,
+                dashArray: '5, 10'
+            }).addTo(map);
+        });
+
+        // Add interactivity to device list
+        document.querySelectorAll('.device-item').forEach((item, index) => {
+            if (index < devices.length) {
+                item.addEventListener('click', () => {
+                    const device = devices[index];
+                    map.setView([device.lat, device.lng], 18);
+                    
+                    // Open popup for the device
+                    setTimeout(() => {
+                        map.eachLayer(layer => {
+                            if (layer instanceof L.Marker) {
+                                const latLng = layer.getLatLng();
+                                if (latLng.lat === device.lat && latLng.lng === device.lng) {
+                                    layer.openPopup();
+                                }
+                            }
+                        });
+                    }, 500);
+                });
+            }
+        });
+
+        // Add scan button functionality
+        document.querySelector('.action-btn').addEventListener('click', function() {
+            this.textContent = "SCANNING...";
+            this.classList.add('pulse');
+            
+            setTimeout(() => {
+                this.textContent = "SCAN COMPLETE";
+                this.classList.remove('pulse');
+                
+                setTimeout(() => {
+                    this.textContent = "INITIATE NETWORK SCAN";
+                    this.classList.add('pulse');
+                }, 2000);
+            }, 3000);
+        });
+
+        // Add filter functionality
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Add layer control functionality
+        document.querySelectorAll('.layer-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        // Ensure map fits properly in container
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
+    </script>
+</body>
+</html>

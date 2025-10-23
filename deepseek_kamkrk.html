@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER-MATRIX v9.0 - Advanced Network Intelligence Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #00e5ff;
+            --accent: #c000ff;
+            --danger: #ff3b6b;
+            --warning: #ffbf00;
+            --success: #00ff88;
+            --bg-900: #02030a;
+            --bg-800: #0a0c12;
+            --glass: rgba(10, 12, 18, 0.85);
+            --glass-border: rgba(0, 230, 255, 0.2);
+            --muted: rgba(255, 255, 255, 0.65);
+            --text: #dfefff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Courier New', monospace;
+            background: var(--bg-900);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* Animated Cyber Background */
+        .cyber-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -10;
+            background: 
+                radial-gradient(ellipse at center, rgba(0, 4, 10, 0.9) 0%, rgba(0, 0, 0, 0.95) 70%),
+                linear-gradient(180deg, rgba(0, 229, 255, 0.03) 0%, transparent 50%);
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(192, 0, 255, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+            animation: gridMove 120s linear infinite;
+            opacity: 0.4;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(24px, 24px); }
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 50%,
+                rgba(0, 0, 0, 0.1) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        .glow-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 229, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(192, 0, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.1);
+            background: rgba(2, 3, 10, 0.8);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: var(--bg-900);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+        }
+
+        .brand-text h1 {
+            font-size: 18px;
+            color: var(--primary);
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+        }
+
+        .brand-text .subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            background: rgba(0, 229, 255, 0.1);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+        }
+
+        .status-badge.warning {
+            background: rgba(255, 191, 0, 0.1);
+            border: 1px solid rgba(255, 191, 0, 0.3);
+            color: var(--warning);
+            box-shadow: 0 0 10px rgba(255, 191, 0, 0.2);
+        }
+
+        .status-badge.danger {
+            background: rgba(255, 59, 107, 0.1);
+            border: 1px solid rgba(255, 59, 107, 0.3);
+            color: var(--danger);
+            box-shadow: 0 0 10px rgba(255, 59, 107, 0.2);
+        }
+
+        /* Main Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            height: calc(100vh - 72px);
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Panel Styling */
+        .panel {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 8px rgba(192, 0, 255, 0.5);
+        }
+
+        .panel-subtitle {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Globe Container */
+        .globe-container {
+            flex: 1;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 400px;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.1);
+        }
+
+        #globeViz {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .globe-controls {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timeline {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .timeline input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .timeline input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            transform: translate(-50%, -100%);
+            white-space: nowrap;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+        }
+
+        /* Button Styling */
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(0, 229, 255, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--bg-900);
+            border: none;
+            font-weight: 600;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        }
+
+        .btn.primary:hover {
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.7);
+        }
+
+        .btn.warning {
+            background: linear-gradient(135deg, var(--warning), #ff8c00);
+            color: var(--bg-900);
+            border: none;
+            font-weight: 600;
+            box-shadow: 0 0 10px rgba(255, 191, 0, 0.5);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, var(--danger), #ff0066);
+            color: white;
+            border: none;
+            font-weight: 600;
+            box-shadow: 0 0 10px rgba(255, 59, 107, 0.5);
+        }
+
+        /* Form Elements */
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.2);
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 3px;
+            box-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+        }
+
+        /* Details Panel */
+        .details-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100vh;
+            background: var(--bg-800);
+            border-left: 1px solid var(--glass-border);
+            padding: 20px;
+            overflow-y: auto;
+            transition: right 0.3s ease;
+            z-index: 1000;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .details-panel.open {
+            right: 0;
+        }
+
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .details-title {
+            font-size: 16px;
+            color: var(--primary);
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .device-info {
+            margin-bottom: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: var(--muted);
+        }
+
+        .info-value {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .vuln-list {
+            margin-top: 16px;
+        }
+
+        .vuln-item {
+            padding: 8px;
+            background: rgba(255, 59, 107, 0.1);
+            border: 1px solid rgba(255, 59, 107, 0.2);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .vuln-severity {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        .severity-critical {
+            background: var(--danger);
+            color: white;
+        }
+
+        .severity-high {
+            background: #ff6b00;
+            color: white;
+        }
+
+        .severity-medium {
+            background: var(--warning);
+            color: black;
+        }
+
+        .severity-low {
+            background: var(--primary);
+            color: black;
+        }
+
+        /* Console */
+        .console {
+            height: 120px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 6px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            margin-top: 8px;
+            border: 1px solid rgba(0, 229, 255, 0.1);
+        }
+
+        .console-line {
+            margin-bottom: 2px;
+            line-height: 1.4;
+        }
+
+        .console-line.info {
+            color: var(--primary);
+        }
+
+        .console-line.warning {
+            color: var(--warning);
+        }
+
+        .console-line.danger {
+            color: var(--danger);
+        }
+
+        .console-line.success {
+            color: var(--success);
+        }
+
+        /* Performance Optimizations */
+        .device-marker {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .device-marker.active {
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .device-marker.vulnerable {
+            background: var(--warning);
+            box-shadow: 0 0 10px var(--warning);
+        }
+
+        .device-marker.threat {
+            background: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .details-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="cyber-bg">
+        <div class="grid-overlay"></div>
+        <div class="scanlines"></div>
+        <div class="glow-effect"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <div class="logo">CM</div>
+            <div class="brand-text">
+                <h1>CYBER-MATRIX v9.0</h1>
+                <div class="subtitle">ADVANCED NETWORK INTELLIGENCE & PENETRATION PLATFORM</div>
+            </div>
+        </div>
+        
+        <div class="header-controls">
+            <div class="status-badge">SYSTEM: ONLINE</div>
+            <div class="status-badge" id="api-status">API: CONNECTED</div>
+            <div class="status-badge">ENCRYPTION: AES-256</div>
+            <button class="btn primary" id="scan-all">SCAN NETWORK</button>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard">
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Globe Container -->
+            <div class="panel globe-container">
+                <div class="panel-header">
+                    <div>
+                        <div class="panel-title">3D NETWORK INTELLIGENCE MAP</div>
+                        <div class="panel-subtitle">Real-time device discovery, threat visualization, and interactive analysis</div>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn" id="toggle-rotation">AUTO ROTATE</button>
+                        <button class="btn" id="toggle-heatmap">HEATMAP</button>
+                        <button class="btn" id="center-globe">CENTER</button>
+                    </div>
+                </div>
+                
+                <canvas id="globeViz"></canvas>
+                
+                <div class="globe-controls">
+                    <div class="timeline">
+                        <span>HISTORY</span>
+                        <input type="range" id="timeline" min="0" max="100" value="100">
+                        <span id="timeline-value">LIVE</span>
+                    </div>
+                    <div class="legend">
+                        <div style="display: flex; gap: 12px; font-size: 11px;">
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 5px var(--primary);"></div>
+                                <span>ACTIVE</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 5px var(--warning);"></div>
+                                <span>VULNERABLE</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 5px var(--danger);"></div>
+                                <span>THREAT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tooltip" id="node-tooltip" style="display: none;"></div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div class="cards-grid">
+                <!-- Network Interface Manager -->
+                <div class="panel card">
+                    <div class="panel-title">NETWORK INTERFACE MANAGER</div>
+                    <div class="panel-subtitle">Configure network interfaces for monitoring and scanning</div>
+                    
+                    <div style="margin-top: 12px;">
+                        <select class="btn" id="interface-select" style="width: 100%; margin-bottom: 8px;">
+                            <option>Loading interfaces...</option>
+                        </select>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn" id="refresh-interfaces">REFRESH</button>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px;">
+                                <input type="checkbox" id="monitor-mode"> MONITOR MODE
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="interface-details" style="margin-top: 12px; font-size: 11px; color: var(--muted);">
+                        Select an interface to view details
+                    </div>
+                </div>
+
+                <!-- Port Scanner -->
+                <div class="panel card">
+                    <div class="panel-title">PORT SCANNER</div>
+                    <div class="panel-subtitle">Discover open ports and services on target systems</div>
+                    
+                    <div style="margin-top: 12px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input type="text" class="btn" id="port-target" placeholder="Target IP" style="flex: 1;">
+                            <input type="text" class="btn" id="port-range" placeholder="Port Range" style="width: 100px;">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn primary" id="start-port-scan" style="flex: 1;">START SCAN</button>
+                            <button class="btn danger" id="stop-port-scan">STOP</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 12px;">
+                        <canvas id="port-chart" height="80"></canvas>
+                    </div>
+                </div>
+
+                <!-- Vulnerability Scanner -->
+                <div class="panel card">
+                    <div class="panel-title">VULNERABILITY SCANNER</div>
+                    <div class="panel-subtitle">Identify security weaknesses and misconfigurations</div>
+                    
+                    <div style="margin-top: 12px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input type="text" class="btn" id="vuln-target" placeholder="Target IP" style="flex: 1;">
+                            <select class="btn" id="vuln-intensity" style="width: 120px;">
+                                <option value="low">LOW</option>
+                                <option value="medium" selected>MEDIUM</option>
+                                <option value="high">HIGH</option>
+                                <option value="aggressive">AGGRESSIVE</option>
+                            </select>
+                        </div>
+                        <button class="btn primary" id="start-vuln-scan" style="width: 100%;">RUN VULNERABILITY SCAN</button>
+                    </div>
+                    
+                    <div style="margin-top: 12px;">
+                        <canvas id="vuln-chart" height="80"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Monitoring -->
+            <div class="cards-grid">
+                <!-- System Monitor -->
+                <div class="panel card">
+                    <div class="panel-title">SYSTEM MONITOR</div>
+                    <div class="panel-subtitle">Real-time performance and resource utilization</div>
+                    
+                    <div style="margin-top: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                    <span>CPU USAGE</span>
+                                    <span id="cpu-value">45%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="cpu-fill" style="width: 45%;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                    <span>MEMORY USAGE</span>
+                                    <span id="memory-value">67%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="memory-fill" style="width: 67%;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                    <span>NETWORK TRAFFIC</span>
+                                    <span id="network-value">32%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="network-fill" style="width: 32%;"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                    <span>ENCRYPTION LEVEL</span>
+                                    <span id="encryption-value">88%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="encryption-fill" style="width: 88%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 12px;">
+                        <canvas id="system-chart" height="80"></canvas>
+                    </div>
+                </div>
+
+                <!-- Attack Dashboard -->
+                <div class="panel card">
+                    <div class="panel-title">ATTACK DASHBOARD</div>
+                    <div class="panel-subtitle">Controlled penetration testing tools (Authorized Use Only)</div>
+                    
+                    <div style="margin-top: 12px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input type="text" class="btn" id="attack-target" placeholder="Target IP" style="flex: 1;">
+                            <select class="btn" id="attack-protocol" style="width: 100px;">
+                                <option>SSH</option>
+                                <option>FTP</option>
+                                <option>RDP</option>
+                                <option>HTTP</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn danger" id="start-attack" style="flex: 1;">INITIATE ATTACK</button>
+                            <button class="btn warning" id="suggest-exploit">SUGGEST EXPLOIT</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 12px;">
+                        <canvas id="attack-chart" height="80"></canvas>
+                    </div>
+                </div>
+
+                <!-- Network Activity -->
+                <div class="panel card">
+                    <div class="panel-title">NETWORK ACTIVITY</div>
+                    <div class="panel-subtitle">Real-time traffic analysis and threat detection</div>
+                    
+                    <div style="margin-top: 12px;">
+                        <canvas id="network-chart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Console -->
+            <div class="panel">
+                <div class="panel-title">NEURAL INTERFACE CONSOLE</div>
+                <div class="panel-subtitle">Direct system control and command execution</div>
+                
+                <div class="console" id="console-output">
+                    <div class="console-line info">> Console initialized. CYBER-MATRIX v9.0 operational.</div>
+                    <div class="console-line info">> Network interfaces scanned: 3 active interfaces detected.</div>
+                    <div class="console-line info">> Device discovery active. Monitoring 12 network nodes.</div>
+                </div>
+                
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <input type="text" class="btn" id="console-input" placeholder="Enter command..." style="flex: 1;">
+                    <button class="btn primary" id="execute-command">EXECUTE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Quick Actions -->
+            <div class="panel">
+                <div class="panel-title">QUICK ACTIONS</div>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+                    <button class="btn primary" id="quick-scan">QUICK NETWORK SCAN</button>
+                    <button class="btn" id="rescan-devices">RESCAN DEVICES</button>
+                    <button class="btn warning" id="isolate-device">ISOLATE SELECTED</button>
+                </div>
+            </div>
+
+            <!-- Device List -->
+            <div class="panel">
+                <div class="panel-title">DETECTED DEVICES</div>
+                <div id="device-list" style="margin-top: 12px; max-height: 300px; overflow-y: auto;">
+                    <!-- Device list will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Threat Intelligence -->
+            <div class="panel">
+                <div class="panel-title">THREAT INTELLIGENCE</div>
+                <div style="margin-top: 12px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                        <span>ACTIVE THREATS</span>
+                        <span id="active-threats">2</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 20%; background: var(--danger);"></div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 8px; margin-bottom: 4px;">
+                        <span>VULNERABILITIES</span>
+                        <span id="vulnerability-count">7</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 35%; background: var(--warning);"></div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 8px; margin-bottom: 4px;">
+                        <span>NETWORK HEALTH</span>
+                        <span id="network-health">78%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 78%; background: var(--success);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Panel -->
+    <div class="details-panel" id="details-panel">
+        <div class="details-header">
+            <div class="details-title">DEVICE DETAILS</div>
+            <button class="close-btn" id="close-details">×</button>
+        </div>
+        
+        <div class="device-info">
+            <div class="info-row">
+                <span class="info-label">Device ID:</span>
+                <span class="info-value" id="detail-id">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Hostname:</span>
+                <span class="info-value" id="detail-hostname">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">IP Address:</span>
+                <span class="info-value" id="detail-ip">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">MAC Address:</span>
+                <span class="info-value" id="detail-mac">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Device Type:</span>
+                <span class="info-value" id="detail-type">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status:</span>
+                <span class="info-value" id="detail-status">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Last Seen:</span>
+                <span class="info-value" id="detail-last-seen">-</span>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn danger" id="detail-isolate">ISOLATE</button>
+            <button class="btn warning" id="detail-scan">QUICK SCAN</button>
+            <button class="btn" id="detail-logs">VIEW LOGS</button>
+        </div>
+        
+        <div class="panel-title">OPEN PORTS</div>
+        <div id="detail-ports" style="margin-top: 8px; font-size: 12px;">
+            No port information available
+        </div>
+        
+        <div class="panel-title" style="margin-top: 16px;">VULNERABILITIES</div>
+        <div id="detail-vulnerabilities" class="vuln-list">
+            <div class="vuln-item">
+                <span class="vuln-severity severity-low">LOW</span>
+                Weak SSH configuration
+            </div>
+            <div class="vuln-item">
+                <span class="vuln-severity severity-medium">MEDIUM</span>
+                Outdated web server version
+            </div>
+        </div>
+        
+        <div class="panel-title" style="margin-top: 16px;">RECOMMENDED ACTIONS</div>
+        <div id="detail-recommendations" style="margin-top: 8px; font-size: 12px;">
+            <div>• Update vulnerable services to latest versions</div>
+            <div>• Implement stronger authentication mechanisms</div>
+            <div>• Monitor for suspicious network activity</div>
+        </div>
+    </div>
+
+    <script>
+        // ========== GLOBAL VARIABLES ==========
+        let scene, camera, renderer, controls, globe;
+        let deviceMarkers = new Map();
+        let autoRotate = true;
+        let heatmapEnabled = false;
+        let currentDetailsDevice = null;
+        
+        // ========== THREE.JS GLOBE INITIALIZATION ==========
+        function initGlobe() {
+            const canvas = document.getElementById('globeViz');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x02030a);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 250);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas, 
+                antialias: true, 
+                alpha: true 
+            });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = autoRotate;
+            controls.autoRotateSpeed = 0.5;
+            controls.minDistance = 150;
+            controls.maxDistance = 400;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+            
+            // Create Earth globe
+            const globeGeometry = new THREE.SphereGeometry(100, 64, 64);
+            const globeMaterial = new THREE.MeshPhongMaterial({
+                color: 0x0a1a2a,
+                specular: 0x222222,
+                shininess: 5,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            globe = new THREE.Mesh(globeGeometry, globeMaterial);
+            scene.add(globe);
+            
+            // Add grid overlay to globe
+            const gridGeometry = new THREE.SphereGeometry(101, 32, 32);
+            const gridMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00e5ff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.1
+            });
+            
+            const grid = new THREE.Mesh(gridGeometry, gridMaterial);
+            scene.add(grid);
+            
+            // Add a subtle glow effect
+            const glowGeometry = new THREE.SphereGeometry(102, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00e5ff,
+                transparent: true,
+                opacity: 0.05
+            });
+            
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            scene.add(glow);
+            
+            // Add some initial device markers for demonstration
+            addDemoDevices();
+            
+            // Start animation loop
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Add click handler for device selection
+            renderer.domElement.addEventListener('click', onCanvasClick);
+            
+            // Add mouse move handler for tooltips
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            
+            console.log('Globe initialized successfully');
+            addConsoleMessage('3D Network Intelligence Map initialized', 'info');
+        }
+        
+        // ========== DEVICE MARKER MANAGEMENT ==========
+        function createDeviceMarker(device) {
+            const color = getColorForStatus(device.status);
+            
+            // Create marker geometry and material
+            const geometry = new THREE.SphereGeometry(1.5, 8, 8);
+            const material = new THREE.MeshBasicMaterial({ color });
+            
+            const marker = new THREE.Mesh(geometry, material);
+            
+            // Position marker on globe
+            const position = latLongToVector3(device.lat, device.long, 100);
+            marker.position.copy(position);
+            
+            // Store device data in marker
+            marker.userData = device;
+            
+            // Add pulsing animation for vulnerable and threat devices
+            if (device.status === 'vulnerable' || device.status === 'threat') {
+                animateMarkerPulse(marker);
+            }
+            
+            // Add to scene and tracking map
+            scene.add(marker);
+            deviceMarkers.set(device.id, marker);
+            
+            return marker;
+        }
+        
+        function getColorForStatus(status) {
+            switch(status) {
+                case 'active': return 0x00e5ff;
+                case 'vulnerable': return 0xffbf00;
+                case 'threat': return 0xff3b6b;
+                default: return 0x00e5ff;
+            }
+        }
+        
+        function latLongToVector3(lat, long, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (long + 180) * (Math.PI / 180);
+            
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            const y = radius * Math.cos(phi);
+            
+            return new THREE.Vector3(x, y, z);
+        }
+        
+        function animateMarkerPulse(marker) {
+            const scale = { value: 1 };
+            const tween = new TWEEN.Tween(scale)
+                .to({ value: 1.5 }, 1000)
+                .easing(TWEEN.Easing.Sinusoidal.InOut)
+                .yoyo(true)
+                .repeat(Infinity)
+                .onUpdate(() => {
+                    marker.scale.set(scale.value, scale.value, scale.value);
+                })
+                .start();
+        }
+        
+        // ========== DEMO DATA ==========
+        function addDemoDevices() {
+            const demoDevices = [
+                { id: 'dev-1', hostname: 'router-gw', ip: '192.168.1.1', mac: 'AA:BB:CC:DD:EE:FF', type: 'Router', status: 'active', lat: 40.7128, long: -74.0060, lastSeen: new Date() },
+                { id: 'dev-2', hostname: 'workstation-01', ip: '192.168.1.10', mac: '11:22:33:44:55:66', type: 'Workstation', status: 'vulnerable', lat: 40.7138, long: -74.0070, lastSeen: new Date() },
+                { id: 'dev-3', hostname: 'server-01', ip: '192.168.1.20', mac: 'AA:11:BB:22:CC:33', type: 'Server', status: 'active', lat: 40.7118, long: -74.0050, lastSeen: new Date() },
+                { id: 'dev-4', hostname: 'iot-camera', ip: '192.168.1.30', mac: 'DD:44:EE:55:FF:66', type: 'IoT Device', status: 'threat', lat: 40.7148, long: -74.0080, lastSeen: new Date() },
+                { id: 'dev-5', hostname: 'nas-storage', ip: '192.168.1.40', mac: '77:88:99:AA:BB:CC', type: 'NAS', status: 'vulnerable', lat: 40.7108, long: -74.0040, lastSeen: new Date() },
+                { id: 'dev-6', hostname: 'printer-01', ip: '192.168.1.50', mac: '12:34:56:78:90:AB', type: 'Printer', status: 'active', lat: 40.7158, long: -74.0090, lastSeen: new Date() }
+            ];
+            
+            demoDevices.forEach(device => {
+                createDeviceMarker(device);
+            });
+            
+            // Update device list in sidebar
+            updateDeviceList(demoDevices);
+        }
+        
+        // ========== UI UPDATES ==========
+        function updateDeviceList(devices) {
+            const deviceList = document.getElementById('device-list');
+            deviceList.innerHTML = '';
+            
+            devices.forEach(device => {
+                const deviceElement = document.createElement('div');
+                deviceElement.className = 'device-item';
+                deviceElement.style.cssText = `
+                    padding: 8px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 6px;
+                    margin-bottom: 8px;
+                    font-size: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                `;
+                
+                deviceElement.innerHTML = `
+                    <div style="display: flex; justify-content: space-between;">
+                        <div style="font-weight: bold;">${device.hostname}</div>
+                        <div style="color: ${getColorForStatus(device.status)}">${device.status.toUpperCase()}</div>
+                    </div>
+                    <div style="color: var(--muted); margin-top: 4px;">${device.ip} • ${device.type}</div>
+                `;
+                
+                deviceElement.addEventListener('click', () => {
+                    showDeviceDetails(device);
+                });
+                
+                deviceElement.addEventListener('mouseenter', () => {
+                    deviceElement.style.background = 'rgba(0, 229, 255, 0.1)';
+                    deviceElement.style.borderColor = 'var(--primary)';
+                });
+                
+                deviceElement.addEventListener('mouseleave', () => {
+                    deviceElement.style.background = '';
+                    deviceElement.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                });
+                
+                deviceList.appendChild(deviceElement);
+            });
+        }
+        
+        function showDeviceDetails(device) {
+            currentDetailsDevice = device;
+            
+            // Update details panel
+            document.getElementById('detail-id').textContent = device.id;
+            document.getElementById('detail-hostname').textContent = device.hostname;
+            document.getElementById('detail-ip').textContent = device.ip;
+            document.getElementById('detail-mac').textContent = device.mac;
+            document.getElementById('detail-type').textContent = device.type;
+            document.getElementById('detail-status').textContent = device.status.charAt(0).toUpperCase() + device.status.slice(1);
+            document.getElementById('detail-last-seen').textContent = device.lastSeen.toLocaleString();
+            
+            // Open details panel
+            document.getElementById('details-panel').classList.add('open');
+        }
+        
+        function addConsoleMessage(message, type = 'info') {
+            const consoleOutput = document.getElementById('console-output');
+            const messageElement = document.createElement('div');
+            messageElement.className = `console-line ${type}`;
+            messageElement.textContent = `> ${message}`;
+            
+            consoleOutput.appendChild(messageElement);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        // ========== EVENT HANDLERS ==========
+        function onWindowResize() {
+            const canvas = renderer.domElement;
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        }
+        
+        function onCanvasClick(event) {
+            // Implement raycasting to detect clicked devices
+            const mouse = new THREE.Vector2();
+            const rect = renderer.domElement.getBoundingClientRect();
+            
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObjects(Array.from(deviceMarkers.values()));
+            
+            if (intersects.length > 0) {
+                const device = intersects[0].object.userData;
+                showDeviceDetails(device);
+            }
+        }
+        
+        function onMouseMove(event) {
+            const tooltip = document.getElementById('node-tooltip');
+            const mouse = new THREE.Vector2();
+            const rect = renderer.domElement.getBoundingClientRect();
+            
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObjects(Array.from(deviceMarkers.values()));
+            
+            if (intersects.length > 0) {
+                const device = intersects[0].object.userData;
+                tooltip.style.display = 'block';
+                tooltip.style.left = `${event.clientX}px`;
+                tooltip.style.top = `${event.clientY - 10}px`;
+                tooltip.innerHTML = `
+                    <strong>${device.hostname}</strong><br>
+                    ${device.ip} • ${device.type}<br>
+                    Status: <span style="color: ${getColorForStatus(device.status)}">${device.status.toUpperCase()}</span>
+                `;
+            } else {
+                tooltip.style.display = 'none';
+            }
+        }
+        
+        // ========== ANIMATION LOOP ==========
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // ========== CHART INITIALIZATION ==========
+        function initCharts() {
+            // Port Scan Chart
+            const portCtx = document.getElementById('port-chart').getContext('2d');
+            new Chart(portCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['SSH', 'HTTP', 'FTP', 'RDP', 'SMB'],
+                    datasets: [{
+                        label: 'Open Ports',
+                        data: [12, 8, 3, 2, 4],
+                        backgroundColor: [
+                            'rgba(0, 229, 255, 0.7)',
+                            'rgba(192, 0, 255, 0.7)',
+                            'rgba(255, 191, 0, 0.7)',
+                            'rgba(255, 59, 107, 0.7)',
+                            'rgba(0, 255, 136, 0.7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Vulnerability Chart
+            const vulnCtx = document.getElementById('vuln-chart').getContext('2d');
+            new Chart(vulnCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low'],
+                    datasets: [{
+                        data: [2, 5, 8, 12],
+                        backgroundColor: [
+                            'rgba(255, 59, 107, 0.8)',
+                            'rgba(255, 106, 0, 0.8)',
+                            'rgba(255, 191, 0, 0.8)',
+                            'rgba(0, 229, 255, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // System Chart
+            const systemCtx = document.getElementById('system-chart').getContext('2d');
+            new Chart(systemCtx, {
+                type: 'line',
+                data: {
+                    labels: ['-5m', '-4m', '-3m', '-2m', '-1m', 'Now'],
+                    datasets: [
+                        {
+                            label: 'CPU',
+                            data: [40, 45, 50, 55, 50, 45],
+                            borderColor: 'rgba(0, 229, 255, 1)',
+                            backgroundColor: 'rgba(0, 229, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Memory',
+                            data: [60, 65, 62, 68, 65, 67],
+                            borderColor: 'rgba(192, 0, 255, 1)',
+                            backgroundColor: 'rgba(192, 0, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Network Activity Chart
+            const networkCtx = document.getElementById('network-chart').getContext('2d');
+            new Chart(networkCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['-6h', '-5h', '-4h', '-3h', '-2h', '-1h', 'Now'],
+                    datasets: [
+                        {
+                            label: 'Normal',
+                            data: [120, 140, 160, 130, 150, 170, 160],
+                            backgroundColor: 'rgba(0, 229, 255, 0.7)'
+                        },
+                        {
+                            label: 'Suspicious',
+                            data: [10, 15, 12, 20, 18, 25, 30],
+                            backgroundColor: 'rgba(255, 191, 0, 0.7)'
+                        },
+                        {
+                            label: 'Threat',
+                            data: [2, 3, 1, 4, 2, 5, 3],
+                            backgroundColor: 'rgba(255, 59, 107, 0.7)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            stacked: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        x: {
+                            stacked: true,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // ========== UI EVENT LISTENERS ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the 3D globe
+            initGlobe();
+            
+            // Initialize charts
+            initCharts();
+            
+            // Add event listeners for buttons
+            document.getElementById('toggle-rotation').addEventListener('click', () => {
+                autoRotate = !autoRotate;
+                controls.autoRotate = autoRotate;
+                document.getElementById('toggle-rotation').textContent = autoRotate ? 'AUTO ROTATE' : 'ROTATION PAUSED';
+            });
+            
+            document.getElementById('toggle-heatmap').addEventListener('click', () => {
+                heatmapEnabled = !heatmapEnabled;
+                addConsoleMessage(`Heatmap ${heatmapEnabled ? 'enabled' : 'disabled'}`, 'info');
+            });
+            
+            document.getElementById('center-globe').addEventListener('click', () => {
+                controls.reset();
+                camera.position.set(0, 0, 250);
+            });
+            
+            document.getElementById('close-details').addEventListener('click', () => {
+                document.getElementById('details-panel').classList.remove('open');
+            });
+            
+            document.getElementById('scan-all').addEventListener('click', () => {
+                addConsoleMessage('Initiating full network scan...', 'info');
+                // Simulate scan progress
+                setTimeout(() => {
+                    addConsoleMessage('Network scan completed. 12 devices discovered.', 'success');
+                }, 2000);
+            });
+            
+            document.getElementById('execute-command').addEventListener('click', () => {
+                const command = document.getElementById('console-input').value;
+                if (command.trim()) {
+                    addConsoleMessage(`Executing: ${command}`, 'info');
+                    document.getElementById('console-input').value = '';
+                    
+                    // Simulate command execution
+                    setTimeout(() => {
+                        addConsoleMessage(`Command completed successfully`, 'success');
+                    }, 1000);
+                }
+            });
+            
+            // Allow Enter key to execute commands
+            document.getElementById('console-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('execute-command').click();
+                }
+            });
+            
+            // Initialize interface dropdown with mock data
+            const interfaceSelect = document.getElementById('interface-select');
+            interfaceSelect.innerHTML = '';
+            const interfaces = [
+                { name: 'eth0', status: 'UP', type: 'Ethernet' },
+                { name: 'wlan0', status: 'UP', type: 'Wireless' },
+                { name: 'docker0', status: 'DOWN', type: 'Virtual' }
+            ];
+            
+            interfaces.forEach(iface => {
+                const option = document.createElement('option');
+                option.value = iface.name;
+                option.textContent = `${iface.name} (${iface.type}) - ${iface.status}`;
+                interfaceSelect.appendChild(option);
+            });
+            
+            // Add console welcome message
+            addConsoleMessage('CYBER-MATRIX v9.0 fully operational. All systems nominal.', 'success');
+        });
+    </script>
+</body>
+</html>
