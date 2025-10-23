@@ -659,11 +659,27 @@ def api_interface_details(interface_name):
 def index():
     """Serve the main dashboard"""
     try:
-        with open('kamkrk_v2.html', 'r') as f:
+        with open('kamkrk_v2_enhanced.html', 'r') as f:
             html_content = f.read()
         return html_content
     except FileNotFoundError:
-        return "Dashboard file not found", 404
+        # Fallback to original dashboard
+        try:
+            with open('kamkrk_v2.html', 'r') as f:
+                html_content = f.read()
+            return html_content
+        except FileNotFoundError:
+            return "Dashboard file not found", 404
+
+@app.route('/3d-map')
+def map_3d():
+    """Serve the 3D map page"""
+    try:
+        with open('static/3d-map.html', 'r') as f:
+            html_content = f.read()
+        return html_content
+    except FileNotFoundError:
+        return "3D Map file not found", 404
 
 @app.route('/api/auth/generate-key', methods=['POST'])
 def api_generate_key():
@@ -1612,6 +1628,59 @@ def api_device_detail(mac_address):
     except Exception as e:
         app.logger.error(f"Device detail error: {str(e)}")
         return jsonify({"error": "Failed to retrieve device details"}), 500
+
+@app.route('/api/dashboard/status')
+def api_dashboard_status():
+    """Get overall dashboard status"""
+    try:
+        return jsonify({
+            "status": "success",
+            "dashboard": {
+                "version": "8.0",
+                "name": "CYBER-MATRIX Enhanced",
+                "online": True,
+                "features": {
+                    "3d_map": True,
+                    "network_scanning": True,
+                    "attack_simulation": True,
+                    "real_time_updates": True,
+                    "websocket_support": True
+                },
+                "last_updated": datetime.now().isoformat()
+            }
+        })
+    except Exception as e:
+        return jsonify({"error": "Failed to get dashboard status"}), 500
+
+@app.route('/api/dashboard/health')
+def api_dashboard_health():
+    """Get dashboard health check"""
+    try:
+        # Check database connectivity
+        db_healthy = False
+        try:
+            with get_db_connection() as conn:
+                conn.execute("SELECT 1")
+            db_healthy = True
+        except:
+            pass
+        
+        # Check system resources
+        memory = psutil.virtual_memory()
+        cpu = psutil.cpu_percent(interval=1)
+        
+        return jsonify({
+            "status": "success",
+            "health": {
+                "overall": "healthy" if db_healthy and cpu < 90 and memory.percent < 90 else "degraded",
+                "database": "healthy" if db_healthy else "unhealthy",
+                "cpu_usage": cpu,
+                "memory_usage": memory.percent,
+                "timestamp": datetime.now().isoformat()
+            }
+        })
+    except Exception as e:
+        return jsonify({"error": "Health check failed"}), 500
 
 # ===== WebSocket Handlers =====
 
