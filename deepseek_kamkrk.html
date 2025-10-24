@@ -1063,8 +1063,8 @@
             const glow = new THREE.Mesh(glowGeometry, glowMaterial);
             scene.add(glow);
             
-            // Fetch real devices from backend
-            fetchDevicesFromBackend();
+            // Add some initial device markers for demonstration
+            addDemoDevices();
             
             // Start animation loop
             animate();
@@ -1144,125 +1144,7 @@
                 .start();
         }
         
-        // ========== BACKEND INTEGRATION ==========
-        const API_BASE = 'http://127.0.0.1:5001';
-        
-        // Fetch real devices from backend
-        async function fetchDevicesFromBackend() {
-            try {
-                const response = await fetch(`${API_BASE}/api/devices`);
-                const data = await response.json();
-                
-                if (data.status === 'success' && Array.isArray(data.devices)) {
-                    // Convert backend data to frontend format
-                    const devices = data.devices.map(device => ({
-                        id: device.id,
-                        hostname: device.hostname || 'Unknown',
-                        ip: device.ip || 'Unknown',
-                        mac: device.mac || '00:00:00:00:00:00',
-                        type: device.device_type || 'Unknown',
-                        status: getStatusFromVulnerability(device.vulnerability_score),
-                        lat: getRandomLatitude(),
-                        long: getRandomLongitude(),
-                        lastSeen: new Date(device.last_seen),
-                        vulnerability_score: device.vulnerability_score || 0
-                    }));
-                    
-                    // Clear existing markers
-                    deviceMarkers.forEach(marker => {
-                        scene.remove(marker);
-                    });
-                    deviceMarkers.clear();
-                    
-                    // Add new devices
-                    devices.forEach(device => {
-                        createDeviceMarker(device);
-                    });
-                    
-                    // Update device list in sidebar
-                    updateDeviceList(devices);
-                    
-                    addConsoleMessage(`Loaded ${devices.length} devices from backend`, 'success');
-                } else {
-                    addConsoleMessage('Failed to load devices from backend', 'warning');
-                    addDemoDevices(); // Fallback to demo data
-                }
-            } catch (error) {
-                console.error('Error fetching devices:', error);
-                addConsoleMessage('Error connecting to backend API', 'danger');
-                addDemoDevices(); // Fallback to demo data
-            }
-        }
-        
-        // Convert vulnerability score to status
-        function getStatusFromVulnerability(score) {
-            if (score >= 80) return 'threat';
-            if (score >= 50) return 'vulnerable';
-            return 'active';
-        }
-        
-        // Generate random coordinates for demo purposes
-        function getRandomLatitude() {
-            return 40.7128 + (Math.random() - 0.5) * 0.01;
-        }
-        
-        function getRandomLongitude() {
-            return -74.0060 + (Math.random() - 0.5) * 0.01;
-        }
-        
-        // Fetch system metrics from backend
-        async function fetchSystemMetrics() {
-            try {
-                const response = await fetch(`${API_BASE}/api/system/metrics`);
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    // Update progress bars
-                    document.getElementById('cpu-value').textContent = `${Math.round(data.cpu_usage)}%`;
-                    document.getElementById('cpu-fill').style.width = `${data.cpu_usage}%`;
-                    
-                    document.getElementById('memory-value').textContent = `${Math.round(data.memory_usage)}%`;
-                    document.getElementById('memory-fill').style.width = `${data.memory_usage}%`;
-                    
-                    document.getElementById('network-value').textContent = `${Math.round(data.network_traffic)}%`;
-                    document.getElementById('network-fill').style.width = `${data.network_traffic}%`;
-                    
-                    document.getElementById('encryption-value').textContent = `${Math.round(data.encryption_level)}%`;
-                    document.getElementById('encryption-fill').style.width = `${data.encryption_level}%`;
-                    
-                    // Update threat intelligence
-                    document.getElementById('active-threats').textContent = data.threats_detected || 0;
-                    document.getElementById('vulnerability-count').textContent = data.vulnerabilities || 0;
-                    document.getElementById('network-health').textContent = `${Math.round(data.network_health || 0)}%`;
-                }
-            } catch (error) {
-                console.error('Error fetching system metrics:', error);
-            }
-        }
-        
-        // Fetch network interfaces from backend
-        async function fetchNetworkInterfaces() {
-            try {
-                const response = await fetch(`${API_BASE}/api/network/interfaces`);
-                const data = await response.json();
-                
-                if (data.status === 'success' && Array.isArray(data.interfaces)) {
-                    const interfaceSelect = document.getElementById('interface-select');
-                    interfaceSelect.innerHTML = '';
-                    
-                    data.interfaces.forEach(iface => {
-                        const option = document.createElement('option');
-                        option.value = iface.name;
-                        option.textContent = `${iface.name} (${iface.type}) - ${iface.status}`;
-                        interfaceSelect.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Error fetching network interfaces:', error);
-            }
-        }
-        
-        // ========== DEMO DATA (FALLBACK) ==========
+        // ========== DEMO DATA ==========
         function addDemoDevices() {
             const demoDevices = [
                 { id: 'dev-1', hostname: 'router-gw', ip: '192.168.1.1', mac: 'AA:BB:CC:DD:EE:FF', type: 'Router', status: 'active', lat: 40.7128, long: -74.0060, lastSeen: new Date() },
@@ -1648,61 +1530,24 @@
                 document.getElementById('details-panel').classList.remove('open');
             });
             
-            document.getElementById('scan-all').addEventListener('click', async () => {
+            document.getElementById('scan-all').addEventListener('click', () => {
                 addConsoleMessage('Initiating full network scan...', 'info');
-                try {
-                    const response = await fetch(`${API_BASE}/api/network/scan`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            target: '192.168.1.0/24',
-                            scan_type: 'comprehensive'
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        addConsoleMessage('Network scan initiated successfully', 'success');
-                        // Refresh devices after scan
-                        setTimeout(() => {
-                            fetchDevicesFromBackend();
-                        }, 5000);
-                    } else {
-                        addConsoleMessage('Failed to initiate network scan', 'danger');
-                    }
-                } catch (error) {
-                    addConsoleMessage('Error initiating network scan', 'danger');
-                }
+                // Simulate scan progress
+                setTimeout(() => {
+                    addConsoleMessage('Network scan completed. 12 devices discovered.', 'success');
+                }, 2000);
             });
             
-            document.getElementById('execute-command').addEventListener('click', async () => {
+            document.getElementById('execute-command').addEventListener('click', () => {
                 const command = document.getElementById('console-input').value;
                 if (command.trim()) {
                     addConsoleMessage(`Executing: ${command}`, 'info');
                     document.getElementById('console-input').value = '';
                     
-                    try {
-                        const response = await fetch(`${API_BASE}/api/console/execute`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                command: command
-                            })
-                        });
-                        
-                        const data = await response.json();
-                        
-                        if (response.ok) {
-                            addConsoleMessage(`Command output: ${data.output}`, 'success');
-                        } else {
-                            addConsoleMessage(`Command failed: ${data.error}`, 'danger');
-                        }
-                    } catch (error) {
-                        addConsoleMessage(`Error executing command: ${error.message}`, 'danger');
-                    }
+                    // Simulate command execution
+                    setTimeout(() => {
+                        addConsoleMessage(`Command completed successfully`, 'success');
+                    }, 1000);
                 }
             });
             
@@ -1729,84 +1574,8 @@
                 interfaceSelect.appendChild(option);
             });
             
-            // Initialize backend data
-            fetchSystemMetrics();
-            fetchNetworkInterfaces();
-            
-            // Port scanner functionality
-            document.getElementById('start-port-scan').addEventListener('click', async () => {
-                const target = document.getElementById('port-target').value;
-                const portRange = document.getElementById('port-range').value || '1-1000';
-                
-                if (!target) {
-                    addConsoleMessage('Please enter a target IP address', 'warning');
-                    return;
-                }
-                
-                addConsoleMessage(`Starting port scan on ${target}...`, 'info');
-                
-                try {
-                    const response = await fetch(`${API_BASE}/api/port/scan`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            target: target,
-                            ports: portRange
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        addConsoleMessage('Port scan initiated successfully', 'success');
-                    } else {
-                        addConsoleMessage('Failed to initiate port scan', 'danger');
-                    }
-                } catch (error) {
-                    addConsoleMessage('Error initiating port scan', 'danger');
-                }
-            });
-            
-            // Vulnerability scanner functionality
-            document.getElementById('start-vuln-scan').addEventListener('click', async () => {
-                const target = document.getElementById('vuln-target').value;
-                const intensity = document.getElementById('vuln-intensity').value;
-                
-                if (!target) {
-                    addConsoleMessage('Please enter a target IP address', 'warning');
-                    return;
-                }
-                
-                addConsoleMessage(`Starting vulnerability scan on ${target}...`, 'info');
-                
-                try {
-                    const response = await fetch(`${API_BASE}/api/vulnerability/scan`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            target: target,
-                            intensity: intensity
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        addConsoleMessage('Vulnerability scan initiated successfully', 'success');
-                    } else {
-                        addConsoleMessage('Failed to initiate vulnerability scan', 'danger');
-                    }
-                } catch (error) {
-                    addConsoleMessage('Error initiating vulnerability scan', 'danger');
-                }
-            });
-            
             // Add console welcome message
             addConsoleMessage('CYBER-MATRIX v9.0 fully operational. All systems nominal.', 'success');
-            
-            // Set up periodic updates
-            setInterval(fetchSystemMetrics, 10000); // Update every 10 seconds
-            setInterval(fetchDevicesFromBackend, 30000); // Update devices every 30 seconds
         });
     </script>
 </body>

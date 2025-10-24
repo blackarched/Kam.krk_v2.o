@@ -1749,14 +1749,14 @@ if __name__ == '__main__':
         app.logger.info('CYBER-MATRIX startup')
     
     print("🚀 Starting CYBER-MATRIX v8.0 - Advanced Holographic Penetration Suite")
-    print("🌐 Dashboard will be available at: http://127.0.0.1:5000")
+    print("🌐 Dashboard will be available at: http://127.0.0.1:5001")
     print("🔒 API endpoints active and ready")
     print("⚡ Real-time metrics enabled")
-    print("🔌 WebSocket server active at ws://127.0.0.1:5000/socket.io/")
+    print("🔌 WebSocket server active at ws://127.0.0.1:5001/socket.io/")
     
     # Run the Flask app with SocketIO
     host = os.environ.get('CYBER_MATRIX_HOST', '127.0.0.1')
-    port = int(os.environ.get('CYBER_MATRIX_PORT', '5000'))
+    port = int(os.environ.get('CYBER_MATRIX_PORT', '5001'))
     
     socketio.run(
         app,
