@@ -1,0 +1,28 @@
+# CYBER-MATRIX v8.0 - Python Dependencies
+# Core web framework
+Flask==2.3.3
+Flask-CORS==4.0.0
+
+# System monitoring and utilities
+psutil==5.9.5
+netifaces==0.11.0
+
+# Network security tools (optional)
+scapy==2.5.0
+
+# Bluetooth support (optional)
+pybluez==0.23
+
+# Database
+sqlite3  # Built into Python
+
+# Additional utilities
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Development and testing
+pytest==7.4.2
+pytest-flask==1.2.0
+
+# Optional network tools integration
+python-nmap==0.7.1

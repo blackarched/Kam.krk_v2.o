@@ -1238,21 +1238,97 @@
             });
         }
         
-        // Initialize Charts
-        function initCharts() {
+        // API Configuration
+        const API_BASE = '/api';
+        
+        // Global chart instances
+        let scanResultsChart, portStatusChart, vulnerabilityChart, attackProgressChart, systemMetricsChart;
+        let financialChart, candlestickChart, performanceChart;
+        
+        // API Helper Functions
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(API_BASE + endpoint, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'API request failed');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                addConsoleMessage(`API Error: ${error.message}`, 'text-red-400');
+                throw error;
+            }
+        }
+        
+        // Console output helper
+        function addConsoleMessage(message, className = 'text-green-400') {
+            const consoleOutput = document.getElementById('console-output');
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = `> ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        // Update system metrics display
+        async function updateSystemMetrics() {
+            try {
+                const metrics = await apiCall('/system/metrics');
+                
+                // Update progress bars
+                document.querySelector('.progress-fill[style*="65%"]').style.width = `${metrics.cpu_usage}%`;
+                document.querySelector('.progress-fill[style*="65%"]').parentElement.nextElementSibling.textContent = `${Math.round(metrics.cpu_usage)}%`;
+                
+                document.querySelector('.progress-fill[style*="42%"]').style.width = `${metrics.memory_usage}%`;
+                document.querySelector('.progress-fill[style*="42%"]').parentElement.nextElementSibling.textContent = `${Math.round(metrics.memory_usage)}%`;
+                
+                document.querySelector('.progress-fill[style*="78%"]').style.width = `${metrics.network_traffic}%`;
+                document.querySelector('.progress-fill[style*="78%"]').parentElement.nextElementSibling.textContent = `${Math.round(metrics.network_traffic)}%`;
+                
+                // Update status indicators
+                const statusElements = document.querySelectorAll('.status-indicator + span');
+                if (statusElements.length >= 4) {
+                    statusElements[0].textContent = `ACTIVE HOSTS: ${metrics.devices_found}`;
+                    statusElements[2].textContent = `VULNERABLE: ${metrics.vulnerabilities}`;
+                }
+                
+                // Update data displays
+                const dataValues = document.querySelectorAll('.data-value');
+                if (dataValues.length >= 4) {
+                    dataValues[0].textContent = (Math.random() * 50 + 20).toFixed(3);
+                    dataValues[1].textContent = (Math.random() * 40 + 15).toFixed(3);
+                    dataValues[2].textContent = (Math.random() * 20 + 5).toFixed(3);
+                    dataValues[3].textContent = (Math.random() * 30 + 10).toFixed(3);
+                }
+                
+            } catch (error) {
+                console.error('Failed to update system metrics:', error);
+            }
+        }
+        
+        // Initialize Charts with Live Data
+        async function initCharts() {
             // Scan Results Chart
             const scanResultsCtx = document.getElementById('scanResultsChart').getContext('2d');
-            new Chart(scanResultsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Active Hosts', 'Inactive Hosts', 'Vulnerable'],
-                    datasets: [{
-                        data: [12, 3, 5],
-                        backgroundColor: ['#00ff41', '#ff00de', '#c000ff'],
-                        borderColor: ['#000', '#000', '#000'],
-                        borderWidth: 1
-                    }]
-                },
+            try {
+                const chartData = await apiCall('/charts/scan_results');
+                scanResultsChart = new Chart(scanResultsCtx, {
+                    type: 'doughnut',
+                    data: chartData,
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -1269,23 +1345,39 @@
                 }
             });
             
+            } catch (error) {
+                // Fallback to static data if API fails
+                scanResultsChart = new Chart(scanResultsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Active Hosts', 'Inactive Hosts', 'Vulnerable'],
+                        datasets: [{
+                            data: [12, 3, 5],
+                            backgroundColor: ['#00ff41', '#ff00de', '#c000ff']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#c9d1d9',
+                                    font: { family: 'Fira Code' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
             // Port Status Chart
             const portStatusCtx = document.getElementById('portStatusChart').getContext('2d');
-            new Chart(portStatusCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['SSH', 'HTTP', 'HTTPS', 'FTP', 'SMB', 'RDP'],
-                    datasets: [{
-                        label: 'Port Status',
-                        data: [22, 80, 443, 21, 445, 3389],
-                        backgroundColor: [
-                            '#c000ff', '#ff00de', '#00ff41', '#c000ff', 
-                            '#ff00de', '#00ff41'
-                        ],
-                        borderColor: '#000',
-                        borderWidth: 1
-                    }]
-                },
+            try {
+                const chartData = await apiCall('/charts/port_status');
+                portStatusChart = new Chart(portStatusCtx, {
+                    type: 'bar',
+                    data: chartData,
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -1322,23 +1414,37 @@
                 }
             });
             
+            } catch (error) {
+                // Fallback to static data
+                portStatusChart = new Chart(portStatusCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['SSH', 'HTTP', 'HTTPS', 'FTP', 'SMB', 'RDP'],
+                        datasets: [{
+                            label: 'Port Status',
+                            data: [22, 80, 443, 21, 445, 3389],
+                            backgroundColor: ['#c000ff', '#ff00de', '#00ff41', '#c000ff', '#ff00de', '#00ff41']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(192, 0, 255, 0.1)' }, ticks: { color: '#c9d1d9', font: { family: 'Fira Code' }}},
+                            x: { grid: { color: 'rgba(192, 0, 255, 0.1)' }, ticks: { color: '#c9d1d9', font: { family: 'Fira Code' }}}
+                        },
+                        plugins: { legend: { display: false }}
+                    }
+                });
+            }
+            
             // Vulnerability Chart
             const vulnerabilityCtx = document.getElementById('vulnerabilityChart').getContext('2d');
-            new Chart(vulnerabilityCtx, {
-                type: 'radar',
-                data: {
-                    labels: ['Remote Code', 'Privilege Escalation', 'Information Disclosure', 'Denial of Service', 'Authentication Bypass'],
-                    datasets: [{
-                        label: 'Vulnerability Level',
-                        data: [85, 60, 45, 75, 30],
-                        backgroundColor: 'rgba(192, 0, 255, 0.2)',
-                        borderColor: '#c000ff',
-                        pointBackgroundColor: '#ff00de',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#ff00de'
-                    }]
-                },
+            try {
+                const chartData = await apiCall('/charts/vulnerability');
+                vulnerabilityChart = new Chart(vulnerabilityCtx, {
+                    type: 'radar',
+                    data: chartData,
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -1761,6 +1867,15 @@
             initParticles();
             initCharts();
             initSatelliteMap();
+            setupGenericButtonHandlers();
+            
+            // Start periodic updates
+            updateSystemMetrics();
+            setInterval(updateChartsData, 10000); // Update every 10 seconds
+            
+            // Initial console message
+            addConsoleMessage('CYBER-MATRIX v8.0 initialized successfully', 'text-green-400');
+            addConsoleMessage('All systems online and ready', 'text-blue-400');
             
             // Add sample console output
             const consoleOutput = document.getElementById('console-output');
@@ -1790,24 +1905,214 @@
                 }
             }, 800);
             
-            // Add interactivity to buttons
+            // Button Event Handlers
+            setupButtonHandlers();
+        }
+        
+        // Setup button event handlers
+        function setupButtonHandlers() {
+            // Network Scan Button
+            const networkScanBtn = document.querySelector('button:contains("INITIATE NETWORK SCAN")') || 
+                                 Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('NETWORK SCAN'));
+            if (networkScanBtn) {
+                networkScanBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Initiating network scan...', 'text-blue-400');
+                    
+                    try {
+                        const ipRange = document.querySelector('input[placeholder="192.168.1.0/24"]').value || '192.168.1.0/24';
+                        const result = await apiCall('/network/scan', 'POST', { ip_range: ipRange });
+                        addConsoleMessage(`Network scan completed. Found ${result.total_found} devices.`, 'text-green-400');
+                        
+                        // Update scan results chart
+                        if (scanResultsChart) {
+                            const chartData = await apiCall('/charts/scan_results');
+                            scanResultsChart.data = chartData;
+                            scanResultsChart.update();
+                        }
+                    } catch (error) {
+                        addConsoleMessage(`Network scan failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Port Scan Button
+            const portScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('PORT SCAN'));
+            if (portScanBtn) {
+                portScanBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Initiating port scan...', 'text-blue-400');
+                    
+                    try {
+                        const targetIp = document.querySelector('input[placeholder="192.168.1.10"]').value;
+                        const portRange = document.querySelector('input[placeholder="1-1000"]').value || '1-1000';
+                        
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+                        
+                        const result = await apiCall('/port/scan', 'POST', { target_ip: targetIp, port_range: portRange });
+                        addConsoleMessage(`Port scan completed. Found ${result.total_open} open ports on ${targetIp}.`, 'text-green-400');
+                        
+                        // Update port status chart
+                        if (portStatusChart) {
+                            const chartData = await apiCall('/charts/port_status');
+                            portStatusChart.data = chartData;
+                            portStatusChart.update();
+                        }
+                    } catch (error) {
+                        addConsoleMessage(`Port scan failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Vulnerability Scan Button
+            const vulnScanBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('VULNERABILITY SCAN'));
+            if (vulnScanBtn) {
+                vulnScanBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Initiating vulnerability scan...', 'text-blue-400');
+                    
+                    try {
+                        const targetIp = document.querySelector('input[placeholder="192.168.1.10"]').value;
+                        const intensity = document.querySelector('select option:checked').value || 'medium';
+                        
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+                        
+                        const result = await apiCall('/vulnerability/scan', 'POST', { target_ip: targetIp, intensity: intensity });
+                        addConsoleMessage(`Vulnerability scan completed. Found ${result.total_found} vulnerabilities on ${targetIp}.`, 'text-green-400');
+                        
+                        // Update vulnerability chart
+                        if (vulnerabilityChart) {
+                            const chartData = await apiCall('/charts/vulnerability');
+                            vulnerabilityChart.data = chartData;
+                            vulnerabilityChart.update();
+                        }
+                    } catch (error) {
+                        addConsoleMessage(`Vulnerability scan failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Hydra Attack Button
+            const hydraBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('INITIATE ATTACK'));
+            if (hydraBtn) {
+                hydraBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Initiating Hydra brute force attack...', 'text-yellow-400');
+                    
+                    try {
+                        const targetIp = this.closest('div').querySelector('input[placeholder="192.168.1.10"]').value;
+                        const protocol = this.closest('div').querySelector('select').value || 'ssh';
+                        
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+                        
+                        const result = await apiCall('/attack/hydra', 'POST', { target_ip: targetIp, protocol: protocol });
+                        addConsoleMessage(result.message, 'text-yellow-400');
+                    } catch (error) {
+                        addConsoleMessage(`Hydra attack failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Metasploit Button
+            const metasploitBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('EXECUTE EXPLOIT'));
+            if (metasploitBtn) {
+                metasploitBtn.addEventListener('click', async function() {
+                    addVisualFeedback(this);
+                    addConsoleMessage('Executing Metasploit exploit...', 'text-yellow-400');
+                    
+                    try {
+                        const targetIp = this.closest('div').querySelector('input[placeholder="192.168.1.10"]').value;
+                        const exploit = this.closest('div').querySelector('select').value || 'generic';
+                        
+                        if (!targetIp) {
+                            addConsoleMessage('Error: Target IP required', 'text-red-400');
+                            return;
+                        }
+                        
+                        const result = await apiCall('/attack/metasploit', 'POST', { target_ip: targetIp, exploit: exploit });
+                        addConsoleMessage(result.message, 'text-yellow-400');
+                    } catch (error) {
+                        addConsoleMessage(`Metasploit exploit failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+            }
+            
+            // Console Execute Button
+            const consoleExecuteBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('EXECUTE'));
+            if (consoleExecuteBtn) {
+                consoleExecuteBtn.addEventListener('click', async function() {
+                    const commandInput = document.querySelector('input[placeholder="Enter command..."]');
+                    const command = commandInput.value.trim();
+                    
+                    if (!command) return;
+                    
+                    addVisualFeedback(this);
+                    addConsoleMessage(command, 'text-blue-400');
+                    
+                    try {
+                        const result = await apiCall('/console/execute', 'POST', { command: command });
+                        addConsoleMessage(result.output, 'text-green-400');
+                        commandInput.value = '';
+                    } catch (error) {
+                        addConsoleMessage(`Command failed: ${error.message}`, 'text-red-400');
+                    }
+                });
+                
+                // Also handle Enter key
+                const commandInput = document.querySelector('input[placeholder="Enter command..."]');
+                if (commandInput) {
+                    commandInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            consoleExecuteBtn.click();
+                        }
+                    });
+                }
+            }
+        }
+        
+        // Visual feedback for buttons
+        function addVisualFeedback(button) {
+            button.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                button.style.transform = '';
+            }, 150);
+        }
+        
+        // Update charts periodically
+        function updateChartsData() {
+            // Update system metrics chart
+            if (systemMetricsChart) {
+                apiCall('/charts/system_metrics').then(chartData => {
+                    systemMetricsChart.data = chartData;
+                    systemMetricsChart.update();
+                }).catch(console.error);
+            }
+            
+            // Update other charts as needed
+            updateSystemMetrics();
+        }
+        
+        // Generic button handler for remaining buttons
+        function setupGenericButtonHandlers() {
             const buttons = document.querySelectorAll('.holographic-button');
             buttons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Add a visual feedback
-                    this.style.transform = 'scale(0.95)';
-                    setTimeout(() => {
-                        this.style.transform = '';
-                    }, 150);
-                    
-                    // Add to console
-                    const action = this.textContent.trim();
-                    const div = document.createElement('div');
-                    div.className = 'text-blue-400';
-                    div.textContent = `> Executing: ${action}`;
-                    consoleOutput.appendChild(div);
-                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
-                });
+                if (!button.hasEventListener) {
+                    button.addEventListener('click', function() {
+                        addVisualFeedback(this);
+                        const action = this.textContent.trim();
+                        addConsoleMessage(`Executing: ${action}`, 'text-blue-400');
+                    });
+                    button.hasEventListener = true;
+                }
             });
             
             // Add mouse move effect for 3D cards
